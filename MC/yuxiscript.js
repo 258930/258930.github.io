@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const blade2 = document.querySelector('.blade.b2');
     const cutButtons = document.getElementById('cut-buttons');
     const requiredEquips = ['小木板', '新鲜菠菜叶片', '双面刀片', '清水', '毛笔', '显微镜', '载玻片','镊子','纱布','盖玻片','培养皿（内含清水）'];
-    const distractEquips = ['酒精灯', '试管', '火柴'];
+    const distractEquips = ['酒精灯', '试管', '火柴','单面刀片'];
     const allEquipsForCheck = [...requiredEquips, ...distractEquips];
 
     function initShelf() {
@@ -168,7 +168,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const name = e.dataTransfer.getData('text');
         // 拖拽前弹题
         state.pendingOperation = () => handleExperimentLogic(name);
+        
         showQuizModal(1);
+        
+        
     });
 
     function showTool(name) {
@@ -234,6 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         if (name === '小木板' && state.step === 0) {
+       
             document.getElementById('cutting-zone').classList.remove('hidden');
             document.getElementById('s-cut-step').innerText = "已放木板 → 请放叶片";
             state.step = 1;
@@ -831,6 +835,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.getElementById('prepareBtn').onclick = () => {
+          showCheckVideoModal(); 
         const modal = document.getElementById('equip-modal');
         const grid = document.getElementById('equipGrid');
         modal.style.display = 'flex';
@@ -844,44 +849,69 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 // ==========================
-// 【独立方法】弹出操作视频弹窗（新增）
+// 【清点器材专用视频】qingdian.mp4
 // ==========================
-function showVideoModal() {
-  // 先创建视频弹窗（如果不存在则创建）
-  let videoModal = document.getElementById('video-modal');
-  if (!videoModal) {
-    videoModal = document.createElement('div');
-    videoModal.id = 'video-modal';
-    videoModal.className = 'modal';
-    videoModal.innerHTML = `
-      <div class="modal-content" style="max-width: 900px; width: 90%;">
-        <h3>🎬 实验操作演示视频</h3>
-        <div style="position: relative; padding-bottom: 56.25%; height: 0; margin:15px 0;">
-          <video 
-            id="experiment-video" 
-            style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; border-radius:8px;"
-            controls
-            poster="视频封面.jpg"  <!-- 你可以放视频封面图 -->
-          >
-            <source src="实验操作视频.mp4" type="video/mp4">
-            你的浏览器不支持视频播放
-          </video>
-        </div>
-        <button id="close-video-btn" class="btn-blue">关闭视频，开始答题</button>
-      </div>
-    `;
-    document.body.appendChild(videoModal);
+function showCheckVideoModal() {
+  let videoModal = document.getElementById('check-video-modal');
+  if (videoModal) {
+    videoModal.remove();
   }
 
-  // 显示视频弹窗
+  videoModal = document.createElement('div');
+  videoModal.id = 'check-video-modal';
+  videoModal.className = 'modal';
+  videoModal.innerHTML = `
+    <div class="modal-content" style="max-width: 900px; width: 90%;">
+      <h3>🎬 器材清点教学视频</h3>
+      <div style="position: relative; padding-bottom: 56.25%; height: 0; margin:15px 0;">
+        <video style="position:absolute; top:0; left:0; width:100%; height:100%; border-radius:8px;" controls>
+          <source src="qingdian.mp4" type="video/mp4">
+        </video>
+      </div>
+      <button id="close-check-video" class="btn-blue">关闭视频，开始清点</button>
+    </div>
+  `;
+  document.body.appendChild(videoModal);
   videoModal.style.display = 'flex';
 
-  // 关闭视频 → 自动弹出题目
-  document.getElementById('close-video-btn').onclick = () => {
+  document.getElementById('close-check-video').onclick = () => {
     videoModal.style.display = 'none';
-    // 视频关闭后，自动弹出题目（调用你原有的弹题方法）
-    showQuizModal();
+      showQuizModal(1);
   };
+
+}
+
+// ==========================
+// 【实验操作专用视频】caozuo.mp4
+// ==========================
+function showUseVideoModal() {
+  let videoModal = document.getElementById('use-video-modal');
+  if (videoModal) {
+    videoModal.remove();
+  }
+
+  videoModal = document.createElement('div');
+  videoModal.id = 'use-video-modal';
+  videoModal.className = 'modal';
+  videoModal.innerHTML = `
+    <div class="modal-content" style="max-width: 900px; width: 90%;">
+      <h3>🎬 实验操作教学视频</h3>
+      <div style="position: relative; padding-bottom: 56.25%; height: 0; margin:15px 0;">
+        <video style="position:absolute; top:0; left:0; width:100%; height:100%; border-radius:8px;" controls>
+          <source src="caozuo.mp4" type="video/mp4">
+        </video>
+      </div>
+      <button id="close-use-video" class="btn-blue">关闭视频，开始实验</button>
+    </div>
+  `;
+  document.body.appendChild(videoModal);
+  videoModal.style.display = 'flex';
+
+  document.getElementById('close-use-video').onclick = () => {
+    videoModal.style.display = 'none';
+       showQuizModal(1);
+  };
+
 }
     document.getElementById('submitEquip').onclick = () => {
         const checkedItems = Array.from(document.querySelectorAll('#equipGrid input:checked')).map(i => i.value);
@@ -902,6 +932,9 @@ function showVideoModal() {
             state.details.push(`清点器材：漏选${missingRequired.length}个必需项 (-0.5)`);
         } else {
             logMsg = "✅ 器材清点正确！已解锁实验操作";
+             setTimeout(() => {
+        showUseVideoModal(); 
+    }, 500);
         }
         if (selectedDistract.length > 0 || missingRequired.length > 0) {
             state.prepared = false;
