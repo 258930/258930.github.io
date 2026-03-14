@@ -142,7 +142,7 @@ function shuffleArray(array) {
 
     // 核心器材列表（必需+干扰项）
     const requiredEquips = ['小木板', '新鲜菠菜叶片', '双面刀片', '清水', '毛笔', '显微镜', '载玻片','镊子','纱布','盖玻片','培养皿（内含清水）']; // 必需器材
-    const distractEquips = ['酒精灯', '试管', '火柴']; // 干扰项
+    const distractEquips = ['酒精灯', '试管', '火柴','单面刀片']; // 干扰项
     const allEquipsForCheck = [...requiredEquips, ...distractEquips]; // 清点时显示的所有器材
 
     // 1. 初始化器材架：仅正确清点后显示，且只显示必需器材
@@ -1244,4 +1244,93 @@ function checkAnsweringState() {
     // ========== 修复点2：初始化时确保器材架默认隐藏（双重保险） ==========
     shelf.style.display = 'none';
     initToolClickListeners();
+    // ========== 接收显微镜页面扣分信息 ==========
+// 方法1：使用 window.addEventListener 监听 message 事件
+window.addEventListener('message', function(event) {
+    // 安全检查：确保消息来自显微镜页面
+    if (event.data && event.data.type === 'microscope-deduction') {
+        // 更新总扣分
+        if (!state.totalDeduction) state.totalDeduction = 0;
+        state.totalDeduction += event.data.points;
+        
+        // 记录扣分详情
+        if (!state.details) state.details = [];
+        state.details.push(`显微镜操作：${event.data.reason} (-${event.data.points}分)`);
+        
+        // 显示日志
+        addLog(`⚠️ 收到显微镜扣分：${event.data.reason} (-${event.data.points}分)`);
+        
+        // 如果扣分超过阈值，触发答题
+        if (event.data.points >= 0.5) {
+            showQuizModal(2); // 分类2：显微镜操作相关题目
+        }
+    }
+});
+
+// 方法2：使用 localStorage 监听（备选方案）
+window.addEventListener('storage', function(e) {
+    if (e.key === 'microscopeDeduction') {
+        try {
+            const data = JSON.parse(e.newValue);
+            if (data && data.points) {
+                // 更新总扣分
+                if (!state.totalDeduction) state.totalDeduction = 0;
+                state.totalDeduction += data.points;
+                
+                // 记录扣分详情
+                if (!state.details) state.details = [];
+                state.details.push(`显微镜操作：${data.reason} (-${data.points}分)`);
+                
+                // 显示日志
+                addLog(`⚠️ 收到显微镜扣分：${data.reason} (-${data.points}分)`);
+            }
+        } catch (err) {
+            console.error('解析扣分数据失败', err);
+        }
+    }
+});
+
+// ========== 可选：添加一个按钮来打开显微镜页面 ==========
+// 在右侧控制面板添加一个按钮（如果还没有的话）
+function addMicroscopeButton() {
+    const controlsPanel = document.querySelector('.controls');
+    if (controlsPanel) {
+        const microPanel = document.createElement('div');
+        microPanel.className = 'panel';
+        microPanel.innerHTML = `
+            <h3>🔬 显微镜操作</h3>
+            <button class="btn-blue" id="openMicroscopeBtn">打开显微镜页面</button>
+            <div class="step-status" id="micro-status">⏳ 未开始</div>
+        `;
+        controlsPanel.appendChild(microPanel);
+        
+        document.getElementById('openMicroscopeBtn').onclick = () => {
+            // 打开显微镜页面
+            window.open('xinweijing.html', '_blank');
+            addLog("🔬 已打开显微镜操作页面");
+        };
+    }
+}
+
+// 调用添加按钮（可选）
+setTimeout(addMicroscopeButton, 1000);
+
+// ========== 修改评分计算，包含显微镜扣分 ==========
+// 在原有的 tidyBtn 点击事件中，确保计算总分时包含显微镜扣分
+const originalTidyBtn = document.getElementById('tidyBtn').onclick;
+document.getElementById('tidyBtn').onclick = function() {
+    // 最终总分 = 满分5分 - 总扣分数（包含显微镜扣分）
+    const total = Math.max(0, 5 - (state.totalDeduction || 0));
+    document.getElementById('finalScore').innerText = total.toFixed(1) + " 分";
+    
+    // 显示扣分详情（包含显微镜扣分）
+    const detailsHtml = state.details && state.details.length > 0 ? 
+        "扣分详情：<br>" + state.details.join('<br>') : "🎉 表现完美，满分！";
+    document.getElementById('scoreDetails').innerHTML = detailsHtml;
+    
+    document.getElementById('report-modal').style.display = 'flex';
+    
+    // 如果原有函数存在，也调用它
+    if (originalTidyBtn) originalTidyBtn.call(this);
+};
 });
