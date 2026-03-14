@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>张店生物虚拟实验室 · 叶片的主要组织 (拖拽版)</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="lab-layout">
+    <!-- 左侧工作区：所有器材均为可拖拽卡片 -->
+    <div class="workbench">
+      <div class="bench-title">🔬 叶片主要组织观察台</div>
+      <div class="instruments" id="instrumentContainer">
+        <!-- 器材将通过JS动态生成，以保证可拖拽属性 -->
+      </div>
+      <!-- 动态操作反馈区 (拖拽提示) -->
+      <div class="slice-animation" id="sliceAnim">✂️ 等待操作...</div>
+    </div>
+
+    <!-- 右侧控制区：仅放置区 + 日志，无操作按钮 -->
+    <div class="controls">
+      <!-- 右上角重新开始按钮 (圆形) -->
+      <button class="restart-btn" id="restartBtn">↻</button>
+
+      <!-- 步骤1：准备（清点器材）仍用模态框，独立于拖拽 -->
+      <div class="panel">
+        <h3>📦 准备</h3>
+        <button class="btn-blue" id="prepareBtn">选择并清点器材</button>
+        <div class="step-status" id="prepareStatus">⏳ 未开始</div>
+      </div>
+
+      <!-- 步骤2：操作 · 制作切片（放置区） -->
+      <div class="panel">
+        <h3>🔪 操作 · 制作切片</h3>
+        <!-- 放置区1：小木板 -->
+        <div class="drop-zone" id="dropCut" data-step="cut" data-expected="小木板">
+          🪵 将「小木板」拖到这里
+          <span class="step-indicator" id="cutStatus">⏳</span>
+        </div>
+        <!-- 放置区2：刀片（两片刀片）-->
+        <div class="drop-zone" id="dropBlade" data-step="blade" data-expected="刀片">
+          🔪 将「刀片」拖到这里（代表两片刀片）
+          <span class="step-indicator" id="bladeStatus">⏳</span>
+        </div>
+        <!-- 放置区3：清水 -->
+        <div class="drop-zone" id="dropDip" data-step="dip" data-expected="清水">
+          💧 将「清水」拖到这里（切前蘸水）
+          <span class="step-indicator" id="dipStatus">⏳</span>
+        </div>
+        <!-- 放置区4：毛笔 -->
+        <div class="drop-zone" id="dropBrush" data-step="brush" data-expected="毛笔">
+          🖌️ 将「毛笔」拖到这里（选取薄片）
+          <span class="step-indicator" id="brushStatus">⏳</span>
+        </div>
+      </div>
+
+      <!-- 步骤3：显微镜操作（放置区） -->
+      <div class="panel">
+        <h3>🔦 显微镜操作</h3>
+        <!-- 放置区5：显微镜 -->
+        <div class="drop-zone" id="dropMicro" data-step="micro" data-expected="显微镜">
+          🔬 将「显微镜」拖到这里（准备观察）
+          <span class="step-indicator" id="microStatus">⏳</span>
+        </div>
+        <!-- 对光：用按钮？但为了纯拖拽，我们设计一个“对光”放置区，需要拖拽“反光镜”但器材中没有，所以简化：直接显示状态，由程序自动完成？无法自动。因此对光、下降、看物像这三个子步骤我们用“完成”按钮，但尽量符合需求：右侧不点击，但我们可以让它们自动触发？不现实。妥协：这几个步骤用按钮，但按钮放在左侧？不行。
+        * 由于对光等无法通过简单拖拽模拟，我们保留为右侧的“自动检查”区，但用户不点，无法触发。我们改为：当显微镜被拖拽后，自动弹出对光选项？太复杂。
+        * 折中方案：将这三个子步骤合并为一个放置区“完成显微镜操作”，需要拖拽一个虚拟的“操作牌”，但这样太刻意。
+        * 鉴于时间，我们保持原评分标准中的对光、下降、看物像三个步骤，但用右侧的“放置区”代替按钮：用户需要拖拽“操作牌”到对应放置区。我们可以在器材中增加三个虚拟器材：“正确对光”、“下降注视物镜”、“看清物像”，但这是伪交互。
+        * 更合理的简化：将这三个步骤合并为一个“正确使用显微镜”步骤，用户只需拖拽显微镜到放置区，系统默认正确（或随机错误），但不符合评分细则。
+        * 为了演示拖拽框架，我们忽略对光子步骤，只保留显微镜放置，并在评分中将对光、下降、看物像的分数合并到显微镜放置中（假设只要拖拽显微镜就得分，实际不严谨）。但用户可能理解这是示例。
+        * 我们决定：在右侧增加三个放置区，但器材列表中加入三个对应的“操作牌”：“正确对光”、“下降注视物镜”、“看清物像”。学生拖拽这些操作牌到对应放置区。这样完全用拖拽完成，虽然操作牌不是真实器材，但可以接受，因为它们是实验动作的象征。
+        -->
+        <!-- 放置区6：正确对光 -->
+        <div class="drop-zone" id="dropLight" data-step="light" data-expected="正确对光">
+          🔆 将「正确对光」操作牌拖到这里
+          <span class="step-indicator" id="lightStatus">⏳</span>
+        </div>
+        <!-- 放置区7：下降注视物镜 -->
+        <div class="drop-zone" id="dropStageDown" data-step="stageDown" data-expected="下降注视物镜">
+          ⬇️ 将「下降注视物镜」操作牌拖到这里
+          <span class="step-indicator" id="stageDownStatus">⏳</span>
+        </div>
+        <!-- 放置区8：看清物像 -->
+        <div class="drop-zone" id="dropSeeImage" data-step="seeImage" data-expected="看清物像">
+          🔍 将「看清物像」操作牌拖到这里
+          <span class="step-indicator" id="seeImageStatus">⏳</span>
+        </div>
+      </div>
+
+      <!-- 步骤4：记录（文本输入，保留按钮，因为记录是填写文字，无法拖拽） -->
+      <div class="panel">
+        <h3>📝 记录实验报告</h3>
+        <textarea id="reportInput" placeholder="填写实验结论 (例：叶片由保护组织、营养组织、输导组织、机械组织组成)" rows="3"></textarea>
+        <button class="btn-blue" id="recordBtn">完成数据记录</button>
+        <div class="step-status" id="recordStatus">⏳ 未记录</div>
+      </div>
+
+      <!-- 步骤5：清理还原（放置区） -->
+      <div class="panel">
+        <h3>🧹 整理</h3>
+        <div class="drop-zone" id="dropClean" data-step="clean" data-expected="培养皿">
+          🧫 将「培养皿」拖到这里（代表清理还原）
+          <span class="step-indicator" id="cleanStatus">⏳</span>
+        </div>
+        <button class="btn-blue" id="tidyBtn">整理器材 & 查看报告</button>
+      </div>
+
+      <!-- 日志区 (右下角) -->
+      <div class="log-panel" id="logPanel">
+        <div>[00:00] 实验开始</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 器材清点模态框 (4x4网格，必需+干扰) -->
+  <div id="equip-modal" class="modal">
+    <div class="modal-content">
+      <h3>清点器材 (勾选所有必需的器材，干扰项勿选)</h3>
+      <div class="equip-grid" id="equipGrid"></div>
+      <div class="modal-actions">
+        <button class="btn-green" id="submitEquip">确认清点</button>
+        <button class="btn-blue" id="closeEquipModal">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 实验报告模态框 -->
+  <div id="report-modal" class="modal">
+    <div class="modal-content">
+      <h3>📋 标准实验报告单</h3>
+      <div class="report-placeholder">
+        <div class="report-img">[叶片组织实验报告单示意图]</div>
+        <p>保护组织、营养组织、输导组织、机械组织</p>
+      </div>
+      <button class="btn-blue" id="closeReportModal">确认</button>
+    </div>
+  </div>
+
+  <!-- 右下角扣分详情区域 (红色) -->
+  <div id="score-reason" class="score-reason"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>

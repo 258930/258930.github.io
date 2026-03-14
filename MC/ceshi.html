@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>专业级虚拟显微镜实验平台</title>
+    <style>
+        :root {
+            --primary: #00e5ff;
+            --bg-panel: rgba(15, 20, 25, 0.85);
+        }
+        body { margin: 0; overflow: hidden; background-color: #0a0a0a; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #webgl-container { width: 100vw; height: 100vh; position: absolute; z-index: 1; }
+        
+        /* 模拟专业仪器的控制面板 UI */
+        #ui-panel {
+            position: absolute; top: 20px; left: 20px; width: 320px; z-index: 2;
+            background: var(--bg-panel); padding: 25px; border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        h1 { font-size: 1.2rem; color: var(--primary); margin-top: 0; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; }
+        .control-group { margin-bottom: 15px; }
+        .label { font-size: 0.85rem; color: #aaa; margin-bottom: 5px; display: block; }
+        .value-display { font-family: 'Courier New', Courier, monospace; font-size: 1.1rem; color: #fff; background: #000; padding: 5px 10px; border-radius: 4px; border-left: 3px solid var(--primary); }
+        
+        /* 模拟目镜观察窗 */
+        #eyepiece-view {
+            position: absolute; bottom: 30px; right: 30px; width: 280px; height: 280px; z-index: 2;
+            border-radius: 50%; border: 8px solid #222; background-color: #000;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.9) inset, 0 10px 20px rgba(0,0,0,0.5);
+            overflow: hidden; pointer-events: none;
+            /* 这里使用 CSS filter 模拟焦距模糊效果 */
+            filter: blur(10px); 
+            transition: filter 0.1s ease;
+        }
+        #eyepiece-view::after {
+            content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(0, 0, 0, 0.5);
+        }
+        #eyepiece-view::before {
+            content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(0, 0, 0, 0.5);
+        }
+        .sample-image { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; }
+        
+        /* 操作提示 */
+        #hint { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 2; color: rgba(255,255,255,0.6); font-size: 0.9rem; pointer-events: none; }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.4/gsap.min.js"></script>
+</head>
+<body>
+
+    <div id="webgl-container"></div>
+
+    <div id="ui-panel">
+        <h1>MicroSim Pro v1.0</h1>
+        <div class="control-group">
+            <span class="label">当前物镜 (Nosepiece)</span>
+            <div class="value-display" id="val-objective">4X (低倍)</div>
+        </div>
+        <div class="control-group">
+            <span class="label">镜筒高度 (Body Tube Z-Axis)</span>
+            <div class="value-display" id="val-height">0.000 mm</div>
+        </div>
+        <div class="control-group">
+            <span class="label">载物台坐标 (Stage X/Y)</span>
+            <div class="value-display" id="val-stage">X: 0.00, Y: 0.00</div>
+        </div>
+    </div>
+
+    <div id="eyepiece-view" id="eyepiece-blur">
+        <img src="https://images.unsplash.com/photo-1532187863486-abf9db0c2826?q=80&w=600&auto=format&fit=crop" class="sample-image" alt="Sample">
+    </div>
+
+    <div id="hint">按 <b>1, 2, 3</b> 切换物镜 | 鼠标滚轮模拟粗准焦 | 拖拽反光镜调节光路</div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+
+        // 1. 初始化场景
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a1a);
+        
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 5000);
+        camera.position.set(30, 20, 40);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        // 开启阴影让模型更逼真
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.getElementById('webgl-container').appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // 2. 环境光照 (模拟实验室灯光)
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight.position.set(10, 20, 10);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+
+        // 模拟反光镜向上的聚光灯光路
+        const mirrorLight = new THREE.SpotLight(0x00e5ff, 5, 50, Math.PI/6, 0.5, 1);
+        scene.add(mirrorLight);
+
+     // 3. 加载模型与核心部件引用
+const parts = {};
+const state = {
+    focusHeight: 0, // 初始焦距设置为0，稍后根据模型位置自动校准
+    currentObjective: 1,
+};
+
+const loader = new FBXLoader();
+
+loader.load('./Xianweijing_Zhengti.fbx', (object) => {
+    console.log("模型加载成功!");
+    
+    // --- 自动缩放与居中 ---
+    const box = new THREE.Box3().setFromObject(object);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const fScale = 25 / maxDim; // 调整为适合屏幕的大小
+    object.scale.set(fScale, fScale, fScale);
+    
+    // 居中对齐
+    object.position.sub(center.multiplyScalar(fScale)); 
+    object.position.y = 0; // 让底座站在原点上
+
+    // --- 部件绑定 (重要：添加了错误检查) ---
+    parts.coarseKnob = object.getObjectByName('Cuzhunjiaoluoxuan-L');
+    parts.fineKnob = object.getObjectByName('Xizhunjiaoluoxuan-L');
+    parts.mirror = object.getObjectByName('Fanguangjing');
+    parts.bodyTube = object.getObjectByName('3a3b6c3b-8866-44ab-bf91-a979d3d88f42');
+    parts.nosepiece = object.getObjectByName('Zhuanhuanqi');
+    parts.stage = object.getObjectByName('ca3c9619-ffb7-4df8-bdfd-5bef197776fc');
+
+    // 自动设定对焦参考高度 (以加载时的初始高度为准)
+    if(parts.bodyTube) state.focusHeight = parts.bodyTube.position.y;
+
+    // 打印一下，方便排查名字对不对
+    console.log("识别到的关键部件:", parts);
+
+    object.traverse((child) => {
+        if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+        }
+    });
+
+    scene.add(object);
+    
+    // 确保在模型加载完后再初始化交互
+    setupInteractions();
+    
+}, (xhr) => {
+    console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+}, (error) => {
+    console.error('模型加载失败，报错信息：', error);
+});
+
+// 4. 核心仿真逻辑交互 (移到外部并确保引用正确)
+function setupInteractions() {
+    // 滚轮控制：粗准焦与镜筒联动
+    window.addEventListener('wheel', (e) => {
+        if (!parts.coarseKnob || !parts.bodyTube) return;
+
+        // 阻止页面滚动，避免干扰
+        e.preventDefault();
+
+        const delta = e.deltaY > 0 ? -1 : 1;
+        const rotateSpeed = 0.1;
+        const moveSpeed = 0.05; // 镜筒上下移动速度
+
+        // 旋转旋钮 (尝试 z 轴，如果不对手动改 x 或 y)
+        parts.coarseKnob.rotation.z += delta * rotateSpeed;
+        if(parts.fineKnob) parts.fineKnob.rotation.z += delta * rotateSpeed;
+
+        // 镜筒位移
+        parts.bodyTube.position.y += delta * moveSpeed;
+        
+        updateFocusSimulation();
+    }, { passive: false });
+
+  const GEAR_ANGLES = {
+        '1': 0,
+        '2': (Math.PI * 2) / 3, // 120度
+        '3': (Math.PI * 4) / 3  // 240度
+    };
+
+    window.addEventListener('keydown', (e) => {
+        if (!parts.nosepiece) {
+            console.error("未找到转换器部件(Zhuanhuanqi)");
+            return;
+        }
+
+        // 检查按键是否为 1, 2, 3
+        if (GEAR_ANGLES.hasOwnProperty(e.key)) {
+            const targetAngle = GEAR_ANGLES[e.key];
+            
+            // UI 更新
+            let text = "";
+            if(e.key === '1') text = "4X (低倍)";
+            if(e.key === '2') text = "10X (中倍)";
+            if(e.key === '3') text = "40X (高倍)";
+            document.getElementById('val-objective').innerText = text;
+
+            // 使用 GSAP 制作转动动画
+            // rotation.y 是指绕 Y 轴转动，如果你的模型转动轴不对，请尝试 rotation.z 或 rotation.x
+            gsap.to(parts.nosepiece.rotation, {
+                z: targetAngle, 
+                duration: 0.8,         // 转动耗时 0.8 秒
+                ease: "back.out(1.2)", // 带有微小回弹效果，模拟机械卡槽的“咔哒”感
+                onUpdate: () => {
+                    // 可以在这里实时检测物镜位置
+                },
+                onComplete: () => {
+                    console.log(`切换至物镜 ${e.key} 完毕`);
+                    // 切换完成后，可以根据倍率改变焦距 state.focusHeight
+                }
+            });
+        }
+    });
+}
+
+// 反光镜交互 (Raycaster)
+window.addEventListener('mousedown', (event) => {
+    if(!parts.mirror) return;
+    
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+
+    const intersects = raycaster.intersectObject(parts.mirror, true);
+    if (intersects.length > 0) {
+        controls.enabled = false; // 拖动反光镜时禁用相机旋转
+        
+        const onMouseMove = (e) => {
+            parts.mirror.rotation.x += e.movementY * 0.01;
+            parts.mirror.rotation.y += e.movementX * 0.01;
+        };
+        
+        const onMouseUp = () => {
+            controls.enabled = true;
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
+        };
+        
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+    }
+});
+
+// 焦距模糊更新
+function updateFocusSimulation() {
+    if(!parts.bodyTube) return;
+    const currentHeight = parts.bodyTube.position.y;
+    document.getElementById('val-height').innerText = currentHeight.toFixed(3) + ' mm';
+
+    const dist = Math.abs(currentHeight - state.focusHeight);
+    const blurAmount = dist * 20; // 调整敏感度
+    
+    const view = document.getElementById('eyepiece-view');
+    view.style.filter = `blur(${Math.min(blurAmount, 30)}px)`;
+}
+
+
+     
+
+        // 5. 渲染循环
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>

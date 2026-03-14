@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>3D高仿真虚拟显微镜实验室</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; font-family: 'Arial', sans-serif; }
+        #canvas-container { width: 100vw; height: 100vh; }
+        
+        /* 操作控制面板 */
+        .control-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(30, 30, 40, 0.9);
+            color: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            min-width: 320px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            border: 1px solid #4CAF50;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+            pointer-events: all;
+        }
+        .control-panel h3 {
+            margin-bottom: 15px;
+            color: #4CAF50;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 8px;
+            font-size: 18px;
+            text-shadow: 0 0 10px rgba(76,175,80,0.3);
+        }
+        .control-group {
+            margin: 15px 0;
+            background: rgba(255,255,255,0.08);
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 3px solid #4CAF50;
+        }
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ddd;
+            font-weight: bold;
+        }
+        .slider {
+            width: 100%;
+            margin: 8px 0;
+            cursor: pointer;
+            accent-color: #4CAF50;
+            height: 6px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 8px 12px;
+            background: #2a2a3a;
+            border: 1px solid #4a4a5a;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+            flex: 1;
+            min-width: 65px;
+        }
+        .btn:hover {
+            background: #4CAF50;
+            border-color: #4CAF50;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(76,175,80,0.3);
+        }
+        .info-text {
+            margin-top: 15px;
+            font-size: 12px;
+            color: #aaa;
+            line-height: 1.6;
+            padding: 10px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 5px;
+        }
+        .status-indicator {
+            color: #4CAF50;
+            margin-top: 5px;
+            font-size: 13px;
+            text-align: right;
+            padding: 4px 8px;
+            background: rgba(76, 175, 80, 0.15);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <!-- 操作控制面板 -->
+    <div class="control-panel">
+        <h3>🔬 虚拟显微镜实验室</h3>
+        
+        <!-- 粗准焦螺旋控制 -->
+        <div class="control-group">
+            <label>粗准焦螺旋 (大范围调焦)</label>
+            <input type="range" class="slider" id="coarseFocus" min="0" max="100" value="50">
+            <div class="btn-group">
+                <button class="btn" id="coarseDown">↓ 向下</button>
+                <button class="btn" id="coarseUp">↑ 向上</button>
+            </div>
+        </div>
+        
+        <!-- 细准焦螺旋控制 -->
+        <div class="control-group">
+            <label>细准焦螺旋 (精细调焦)</label>
+            <input type="range" class="slider" id="fineFocus" min="0" max="100" value="50">
+            <div class="btn-group">
+                <button class="btn" id="fineDown">↓ 微调下</button>
+                <button class="btn" id="fineUp">↑ 微调上</button>
+            </div>
+        </div>
+        
+        <!-- 转换器（物镜切换） -->
+        <div class="control-group">
+            <label>转换器 (物镜切换)</label>
+            <div class="btn-group">
+                <button class="btn" id="obj4x">4× 低倍</button>
+                <button class="btn" id="obj10x">10× 中倍</button>
+                <button class="btn" id="obj40x">40× 高倍</button>
+            </div>
+            <div class="status-indicator" id="objectiveInfo">⚡ 当前物镜：4×</div>
+        </div>
+        
+        <!-- 反光镜控制 -->
+        <div class="control-group">
+            <label>反光镜 (光源亮度)</label>
+            <input type="range" class="slider" id="mirrorAngle" min="0" max="100" value="70">
+            <div class="status-indicator" id="lightInfo">💡 光源亮度：70%</div>
+        </div>
+        
+        <!-- 载物台控制 -->
+        <div class="control-group">
+            <label>载物台 (样本位置)</label>
+            <div class="btn-group">
+                <button class="btn" id="stageLeft">← 左移</button>
+                <button class="btn" id="stageRight">右移 →</button>
+                <button class="btn" id="stageForward">↑ 前移</button>
+                <button class="btn" id="stageBackward">↓ 后移</button>
+            </div>
+        </div>
+        
+        <div class="info-text">
+            📌 操作指南：<br>
+            • 鼠标左键拖动：旋转观察视角<br>
+            • 鼠标滚轮：拉近/拉远视图<br>
+            • 粗准焦：大范围升降镜筒<br>
+            • 细准焦：精确微调焦距<br>
+            • 物镜切换：改变放大倍数
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // 全局变量
+        let scene, camera, renderer, controls;
+        let microscope;
+ // 显微镜部件
+let base, pillar, arm;
+let coarseKnob, fineKnob;
+let bodyTube, eyepiece, nosepiece, objectives = [];
+let stage, slide, mirror, lightSource;
+let condenser, diaphragm;
+        let currentObjective = 0; // 0:4x, 1:10x, 2:40x
+        let stagePosition = { x: 0, y: 0, z: 0 };
+        let focusPosition = 0;
+
+        // 初始化场景
+        function init() {
+            try {
+                // 创建场景
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x222222);
+                
+                // 创建相机
+                camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+                camera.position.set(5, 3, 8);
+                camera.lookAt(0, 2, 0);
+                
+                // 创建渲染器
+                renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                renderer.setPixelRatio(window.devicePixelRatio);
+                document.getElementById('canvas-container').appendChild(renderer.domElement);
+                
+                // 添加控制器
+                controls = new OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.05;
+                controls.autoRotate = false;
+                controls.target.set(0, 2, 0);
+                controls.maxPolarAngle = Math.PI / 2;
+                
+                // 添加光源
+                setupLights();
+                
+                // 添加环境
+                setupEnvironment();
+                
+                // 创建显微镜
+                createMicroscope();
+                
+                // 绑定控件事件
+                bindControls();
+                
+                // 窗口自适应
+                window.addEventListener('resize', onWindowResize);
+                
+                // 启动动画循环
+                animate();
+                
+                console.log('初始化成功！');
+            } catch (error) {
+                console.error('初始化错误:', error);
+            }
+        }
+
+        // 设置光源
+        function setupLights() {
+            // 环境光
+            const ambientLight = new THREE.AmbientLight(0x404060, 0.5);
+            scene.add(ambientLight);
+            
+            // 主光源 - 从上方照明
+            const topLight = new THREE.DirectionalLight(0xffffff, 1);
+            topLight.position.set(2, 5, 3);
+            topLight.castShadow = true;
+            topLight.shadow.mapSize.width = 1024;
+            topLight.shadow.mapSize.height = 1024;
+            scene.add(topLight);
+            
+            // 背光
+            const backLight = new THREE.DirectionalLight(0x446688, 0.5);
+            backLight.position.set(-2, 2, -3);
+            scene.add(backLight);
+            
+            // 侧光
+            const sideLight = new THREE.DirectionalLight(0x88aacc, 0.6);
+            sideLight.position.set(3, 2, 2);
+            scene.add(sideLight);
+            
+            // 反光镜光源（可调节）
+            lightSource = new THREE.PointLight(0xffaa66, 0.8);
+            lightSource.position.set(0, 1, 3);
+            scene.add(lightSource);
+        }
+
+        // 设置环境
+        function setupEnvironment() {
+            // 网格地面
+            const gridHelper = new THREE.GridHelper(15, 20, 0x4CAF50, 0x333333);
+            gridHelper.position.y = -1;
+            scene.add(gridHelper);
+            
+            // 实验台效果
+            const tableMat = new THREE.MeshPhongMaterial({ color: 0x333344 });
+            const tableGeo = new THREE.BoxGeometry(20, 0.2, 20);
+            const table = new THREE.Mesh(tableGeo, tableMat);
+            table.position.y = -1.1;
+            table.receiveShadow = true;
+            scene.add(table);
+        }
+
+        // 创建显微镜模型
+        // 创建显微镜模型（真实结构）
+function createMicroscope() {
+    microscope = new THREE.Group();
+
+    // ==============================================
+    // 1. 底座 Base
+    // ==============================================
+    base = new THREE.Group();
+    const baseMat = new THREE.MeshPhongMaterial({
+        color: 0x2c3e50,
+        shininess: 50
+    });
+    const baseBody = new THREE.Mesh(
+        new THREE.BoxGeometry(4, 1, 2.5),
+        baseMat
+    );
+    baseBody.position.y = -0.5;
+    baseBody.castShadow = true;
+    baseBody.receiveShadow = true;
+    base.add(baseBody);
+
+    // 底座弧形前檐
+    const baseFront = new THREE.Mesh(
+        new THREE.BoxGeometry(4.2, 0.6, 2.7),
+        new THREE.MeshPhongMaterial({ color: 0x34495e })
+    );
+    baseFront.position.y = -0.7;
+    baseFront.castShadow = true;
+    base.add(baseFront);
+    microscope.add(base);
+
+    // ==============================================
+    // 2. 立柱 Pillar
+    // ==============================================
+    pillar = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.4, 0.45, 5, 16),
+        new THREE.MeshPhongMaterial({ color: 0x7f8c8d, shininess: 40 })
+    );
+    pillar.position.set(0, 1.5, 0);
+    pillar.castShadow = true;
+    pillar.receiveShadow = true;
+    microscope.add(pillar);
+
+    // ==============================================
+    // 3. 镜臂 Arm (弧形)
+    // ==============================================
+    arm = new THREE.Group();
+    const armMat = new THREE.MeshPhongMaterial({ color: 0x95a5a6 });
+
+    // 上臂
+    const armTop = new THREE.Mesh(
+        new THREE.BoxGeometry(2.2, 0.4, 0.5),
+        armMat
+    );
+    armTop.position.set(-1.1, 3.8, 0);
+    armTop.castShadow = true;
+    arm.add(armTop);
+
+    // 倾斜连接
+    const armCurve = new THREE.Mesh(
+        new THREE.BoxGeometry(0.5, 2.5, 0.5),
+        armMat
+    );
+    armCurve.position.set(-0.25, 2.5, 0);
+    armCurve.rotation.z = Math.PI / 6;
+    armCurve.castShadow = true;
+    arm.add(armCurve);
+
+    // 下臂
+    const armBottom = new THREE.Mesh(
+        new THREE.BoxGeometry(0.5, 2, 0.5),
+        armMat
+    );
+    armBottom.position.set(0, 1.5, 0);
+    armBottom.castShadow = true;
+    arm.add(armBottom);
+
+    microscope.add(arm);
+
+    // ==============================================
+    // 4. 粗准焦螺旋 Coarse Focus
+    // ==============================================
+    coarseKnob = new THREE.Group();
+    const coarseKnobMain = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.6, 0.6, 0.25, 32),
+        new THREE.MeshPhongMaterial({ color: 0xd0d0d0, shininess: 70 })
+    );
+    coarseKnobMain.rotation.z = Math.PI / 2;
+    coarseKnobMain.position.set(0, 1.6, 1.0);
+    coarseKnobMain.castShadow = true;
+    coarseKnob.add(coarseKnobMain);
+
+    // 滚花纹理
+    for (let i = 0; i < 12; i++) {
+        const line = new THREE.Mesh(
+            new THREE.BoxGeometry(0.04, 0.1, 0.03),
+            new THREE.MeshPhongMaterial({ color: 0x555 })
+        );
+        line.rotation.z = Math.PI / 2;
+        line.position.set(
+            Math.cos(i / 12 * Math.PI * 2) * 0.6,
+            1.6,
+            1.0 + Math.sin(i / 12 * Math.PI * 2) * 0.6
+        );
+        coarseKnob.add(line);
+    }
+    microscope.add(coarseKnob);
+
+    // ==============================================
+    // 5. 细准焦螺旋 Fine Focus
+    // ==============================================
+    fineKnob = new THREE.Group();
+    const fineKnobMain = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.4, 0.4, 0.2, 24),
+        new THREE.MeshPhongMaterial({ color: 0xe0e0e0, shininess: 80 })
+    );
+    fineKnobMain.rotation.z = Math.PI / 2;
+    fineKnobMain.position.set(0, 0.8, 1.0);
+    fineKnobMain.castShadow = true;
+    fineKnob.add(fineKnobMain);
+    microscope.add(fineKnob);
+
+    // ==============================================
+    // 6. 镜筒 Body Tube
+    // ==============================================
+    bodyTube = new THREE.Group();
+    bodyTube.position.set(-1.2, 3.8, 0);
+
+    const tubeMesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.35, 0.35, 2.2, 16),
+        new THREE.MeshPhongMaterial({ color: 0xecf0f1, shininess: 20 })
+    );
+    tubeMesh.castShadow = true;
+    bodyTube.add(tubeMesh);
+    microscope.add(bodyTube);
+
+    // ==============================================
+    // 7. 目镜 Eyepiece
+    // ==============================================
+    eyepiece = new THREE.Group();
+    eyepiece.position.set(-1.2, 4.8, 0);
+
+    const eyeLensHolder = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.4, 0.45, 0.5, 12),
+        new THREE.MeshPhongMaterial({ color: 0x2c3e50 })
+    );
+    eyeLensHolder.castShadow = true;
+    eyepiece.add(eyeLensHolder);
+
+    const eyeLens = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.25, 0.25, 0.15, 8),
+        new THREE.MeshPhongMaterial({
+            color: 0xaaddff,
+            transparent: true,
+            opacity: 0.8,
+            emissive: 0x224466
+        })
+    );
+    eyeLens.position.y = 0.3;
+    eyeLens.castShadow = true;
+    eyepiece.add(eyeLens);
+    microscope.add(eyepiece);
+
+    // ==============================================
+    // 8. 物镜转盘 Nosepiece
+    // ==============================================
+    nosepiece = new THREE.Group();
+    nosepiece.position.set(-1.2, 2.8, 0);
+
+    const revolver = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.9, 0.9, 0.25, 8),
+        new THREE.MeshPhongMaterial({ color: 0x7f8c8d })
+    );
+    revolver.castShadow = true;
+    nosepiece.add(revolver);
+    microscope.add(nosepiece);
+
+    // ==============================================
+    // 9. 三个物镜 Objectives
+    // ==============================================
+    objectives[0] = createObjective(0x3498db, 0.7);  // 4x
+    objectives[1] = createObjective(0x2ecc71, 0.9);  // 10x
+    objectives[2] = createObjective(0xe74c3c, 1.2);   // 40x
+
+    objectives[0].position.set(0, -0.4, 0);
+    objectives[1].position.set(-0.7, -0.4, 0.5);
+    objectives[2].position.set(-0.7, -0.4, -0.5);
+
+    objectives[0].visible = true;
+    objectives[1].visible = false;
+    objectives[2].visible = false;
+
+    nosepiece.add(objectives[0]);
+    nosepiece.add(objectives[1]);
+    nosepiece.add(objectives[2]);
+
+    // ==============================================
+    // 10. 载物台 Stage
+    // ==============================================
+    stage = new THREE.Group();
+    stage.position.set(-1.2, 1.8, 0);
+
+    const stagePlate = new THREE.Mesh(
+        new THREE.BoxGeometry(2.2, 0.2, 2.0),
+        new THREE.MeshPhongMaterial({ color: 0xb0b0b0 })
+    );
+    stagePlate.castShadow = true;
+    stagePlate.receiveShadow = true;
+    stage.add(stagePlate);
+
+    // 压片夹
+    const clipMat = new THREE.MeshPhongMaterial({ color: 0xe67e22 });
+    const clip1 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.15, 0.1), clipMat);
+    clip1.position.set(0.8, 0.1, 0.7);
+    stage.add(clip1);
+
+    const clip2 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.15, 0.1), clipMat);
+    clip2.position.set(0.8, 0.1, -0.7);
+    stage.add(clip2);
+
+    // 载玻片
+    slide = new THREE.Mesh(
+        new THREE.BoxGeometry(1.6, 0.06, 1.2),
+        new THREE.MeshPhongMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.85
+        })
+    );
+    slide.position.y = 0.13;
+    stage.add(slide);
+
+    // 细胞样本
+    for (let i = 0; i < 15; i++) {
+        const cell = new THREE.Mesh(
+            new THREE.SphereGeometry(0.06 + Math.random() * 0.04, 6),
+            new THREE.MeshPhongMaterial({
+                color: new THREE.Color().setHSL(0.55 + Math.random() * 0.2, 0.8, 0.6)
+            })
+        );
+        cell.position.set(
+            (Math.random() - 0.5) * 1.2,
+            0.18,
+            (Math.random() - 0.5) * 0.8
+        );
+        stage.add(cell);
+    }
+    microscope.add(stage);
+
+    // ==============================================
+    // 11. 聚光镜 + 光圈 Condenser & Diaphragm
+    // ==============================================
+    condenser = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.2, 0.3, 0.4, 12),
+        new THREE.MeshPhongMaterial({ color: 0x666 })
+    );
+    condenser.position.set(-1.2, 1.2, 0);
+    microscope.add(condenser);
+
+    // ==============================================
+    // 12. 反光镜 Mirror
+    // ==============================================
+    mirror = new THREE.Group();
+    mirror.position.set(-1.2, 0.4, 0.8);
+
+    const mirrorFrame = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.5, 0.5, 0.1, 16),
+        new THREE.MeshPhongMaterial({ color: 0x888 })
+    );
+    mirrorFrame.rotation.x = Math.PI / 2;
+    mirror.add(mirrorFrame);
+
+    const mirrorGlass = new THREE.Mesh(
+        new THREE.CircleGeometry(0.45, 20),
+        new THREE.MeshPhongMaterial({
+            color: 0xffffff,
+            emissive: 0x332211,
+            shininess: 100,
+            side: THREE.DoubleSide
+        })
+    );
+    mirrorGlass.rotation.y = Math.PI / 2;
+    mirrorGlass.position.x = 0.05;
+    mirror.add(mirrorGlass);
+    microscope.add(mirror);
+
+    scene.add(microscope);
+}
+
+        // 创建物镜
+       // 单个物镜
+function createObjective(color, length) {
+    const group = new THREE.Group();
+
+    // 物镜主体
+    const body = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.18, 0.22, length, 12),
+        new THREE.MeshPhongMaterial({ color, shininess: 60 })
+    );
+    body.position.y = -length / 2;
+    body.castShadow = true;
+    group.add(body);
+
+    // 前端
+    const tip = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.12, 0.18, 0.2, 8),
+        new THREE.MeshPhongMaterial({ color: 0x222 })
+    );
+    tip.position.y = -length - 0.1;
+    tip.castShadow = true;
+    group.add(tip);
+
+    // 镜头
+    const lens = new THREE.Mesh(
+        new THREE.SphereGeometry(0.08, 6),
+        new THREE.MeshPhongMaterial({
+            color: 0x99ddff,
+            emissive: 0x224466,
+            transparent: true,
+            opacity: 0.8
+        })
+    );
+    lens.position.y = -length - 0.18;
+    lens.castShadow = true;
+    group.add(lens);
+
+    return group;
+}
+        // 绑定控件事件
+        function bindControls() {
+            // 粗准焦螺旋
+            const coarseSlider = document.getElementById('coarseFocus');
+            coarseSlider.addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value) / 100;
+                focusPosition = value * 0.8;
+                updateFocus();
+            });
+
+            document.getElementById('coarseDown').addEventListener('click', () => {
+                adjustSlider('coarseFocus', -5);
+            });
+            document.getElementById('coarseUp').addEventListener('click', () => {
+                adjustSlider('coarseFocus', 5);
+            });
+
+            // 细准焦螺旋
+            const fineSlider = document.getElementById('fineFocus');
+            fineSlider.addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value) / 100;
+                focusPosition = value * 0.8;
+                updateFocus();
+            });
+
+            document.getElementById('fineDown').addEventListener('click', () => {
+                adjustSlider('fineFocus', -1);
+            });
+            document.getElementById('fineUp').addEventListener('click', () => {
+                adjustSlider('fineFocus', 1);
+            });
+
+            // 物镜切换
+            document.getElementById('obj4x').addEventListener('click', () => switchObjective(0));
+            document.getElementById('obj10x').addEventListener('click', () => switchObjective(1));
+            document.getElementById('obj40x').addEventListener('click', () => switchObjective(2));
+
+            // 反光镜
+            const mirrorSlider = document.getElementById('mirrorAngle');
+            mirrorSlider.addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value) / 100;
+                if (lightSource) {
+                    lightSource.intensity = 0.3 + value * 1.2;
+                }
+                mirror.rotation.x = (value - 0.5) * 0.5;
+                mirror.rotation.y = (value - 0.5) * 0.8;
+                document.getElementById('lightInfo').innerHTML = `💡 光源亮度：${Math.round(value * 100)}%`;
+            });
+
+            // 载物台移动
+            document.getElementById('stageLeft').addEventListener('click', () => moveStage('left'));
+            document.getElementById('stageRight').addEventListener('click', () => moveStage('right'));
+            document.getElementById('stageForward').addEventListener('click', () => moveStage('forward'));
+            document.getElementById('stageBackward').addEventListener('click', () => moveStage('backward'));
+        }
+
+        function adjustSlider(id, step) {
+            const slider = document.getElementById(id);
+            let value = parseInt(slider.value) + step;
+            value = Math.max(0, Math.min(100, value));
+            slider.value = value;
+            slider.dispatchEvent(new Event('input'));
+        }
+function updateFocus() {
+    const yOffset = focusPosition * 0.5;
+    if (bodyTube) bodyTube.position.y = 3.8 - yOffset;
+    if (eyepiece) eyepiece.position.y = 4.8 - yOffset;
+    if (nosepiece) nosepiece.position.y = 2.8 - yOffset;
+    if (coarseKnob) coarseKnob.rotation.z += 0.02;
+    if (fineKnob) fineKnob.rotation.z += 0.04;
+}
+        function switchObjective(index) {
+            currentObjective = index;
+            
+            // 隐藏所有物镜
+            objectives.forEach(obj => { obj.visible = false; });
+            
+            // 显示选中的物镜
+            objectives[index].visible = true;
+            
+            // 旋转物镜转盘
+            if (nosepiece) {
+                nosepiece.rotation.y = index * Math.PI * 2/3;
+            }
+            
+            const names = ['4×', '10×', '40×'];
+            document.getElementById('objectiveInfo').innerHTML = `⚡ 当前物镜：${names[index]}`;
+        }
+
+        function moveStage(direction) {
+            const step = 0.1;
+            switch(direction) {
+                case 'left':
+                    stagePosition.x -= step;
+                    break;
+                case 'right':
+                    stagePosition.x += step;
+                    break;
+                case 'forward':
+                    stagePosition.z -= step;
+                    break;
+                case 'backward':
+                    stagePosition.z += step;
+                    break;
+            }
+            
+            // 限制移动范围
+            stagePosition.x = Math.max(-0.8, Math.min(0.8, stagePosition.x));
+            stagePosition.z = Math.max(-0.6, Math.min(0.6, stagePosition.z));
+            
+            if (stage) {
+                stage.position.x = -0.2 + stagePosition.x;
+                stage.position.z = stagePosition.z;
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (controls) controls.update();
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+
+        // 启动应用
+        window.onload = init;
+    </script>
+</body>
+</html>

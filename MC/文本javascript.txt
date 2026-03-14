@@ -1,0 +1,392 @@
+// script.js - 拖拽版，完全通过左侧拖拽完成步骤，右侧仅显示规范程度
+(function() {
+  document.addEventListener('DOMContentLoaded', function() {
+    // ---------- 全局状态 ----------
+    const state = {
+      scores: {
+        prepare: undefined,        // 0.5
+        cut: undefined,            // 0.5 (小木板放置)
+        blade: undefined,          // 0.5 (刀片放置)
+        dip: undefined,            // 0.5
+        brush: undefined,          // 0.5
+        micro: undefined,          // 显微镜放置 (对光、下降、看物像暂用操作牌)
+        light: undefined,          // 0.5 (正确对光操作牌)
+        stageDown: undefined,      // 0.5 (下降注视物镜操作牌)
+        seeImage: undefined,       // 0.5 (看清物像操作牌)
+        report: undefined,         // 0.5
+        clean: undefined           // 0.5
+      },
+      locks: {
+        prepare: false,
+        cut: false,
+        blade: false,
+        dip: false,
+        brush: false,
+        micro: false,
+        light: false,
+        stageDown: false,
+        seeImage: false,
+        report: false,
+        clean: false
+      },
+      log: ['[00:00] 实验开始']
+    };
+
+    // ---------- 器材清单 ----------
+    const requiredEquip = [
+      '显微镜', '滴管', '镊子', '毛笔', '清水', '小木板',
+      '纱布', '吸水纸', '载玻片', '盖玻片', '新鲜菠菜叶片', '培养皿',
+      '刀片',  // 新增，代表两片刀片
+      '正确对光',   // 操作牌
+      '下降注视物镜', // 操作牌
+      '看清物像'     // 操作牌
+    ];
+    const distractions = ['酒精灯', '试管', '火柴']; // 干扰项
+    const allItems = [...requiredEquip, ...distractions];
+
+    // 获取DOM元素
+    const instrumentContainer = document.getElementById('instrumentContainer');
+    const prepareBtn = document.getElementById('prepareBtn');
+    const equipModal = document.getElementById('equip-modal');
+    const closeEquipBtn = document.getElementById('closeEquipModal');
+    const submitEquip = document.getElementById('submitEquip');
+    const equipGrid = document.getElementById('equipGrid');
+    const restartBtn = document.getElementById('restartBtn');
+    const sliceAnim = document.getElementById('sliceAnim');
+    const prepareStatus = document.getElementById('prepareStatus');
+    const recordStatus = document.getElementById('recordStatus');
+    const reportInput = document.getElementById('reportInput');
+    const recordBtn = document.getElementById('recordBtn');
+    const tidyBtn = document.getElementById('tidyBtn');
+    const reportModal = document.getElementById('report-modal');
+    const closeReportBtn = document.getElementById('closeReportModal');
+    const logPanel = document.getElementById('logPanel');
+    const scoreReason = document.getElementById('score-reason');
+
+    // 所有放置区
+    const dropZones = {
+      cut: document.getElementById('dropCut'),
+      blade: document.getElementById('dropBlade'),
+      dip: document.getElementById('dropDip'),
+      brush: document.getElementById('dropBrush'),
+      micro: document.getElementById('dropMicro'),
+      light: document.getElementById('dropLight'),
+      stageDown: document.getElementById('dropStageDown'),
+      seeImage: document.getElementById('dropSeeImage'),
+      clean: document.getElementById('dropClean')
+    };
+
+    // 状态指示器span
+    const statusSpans = {
+      cut: document.getElementById('cutStatus'),
+      blade: document.getElementById('bladeStatus'),
+      dip: document.getElementById('dipStatus'),
+      brush: document.getElementById('brushStatus'),
+      micro: document.getElementById('microStatus'),
+      light: document.getElementById('lightStatus'),
+      stageDown: document.getElementById('stageDownStatus'),
+      seeImage: document.getElementById('seeImageStatus'),
+      clean: document.getElementById('cleanStatus')
+    };
+
+    // ---------- 构建左侧可拖拽器材 ----------
+    function buildInstruments() {
+      instrumentContainer.innerHTML = '';
+      // 显示所有器材（必需+干扰），但为了简化，只显示必需的+操作牌，干扰项也显示但拖拽后会判错
+      allItems.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'instrument';
+        div.setAttribute('draggable', 'true');
+        div.setAttribute('data-item', item);
+        div.textContent = item;
+        div.addEventListener('dragstart', handleDragStart);
+        div.addEventListener('dragend', handleDragEnd);
+        instrumentContainer.appendChild(div);
+      });
+    }
+    buildInstruments();
+
+    // 拖拽事件
+    function handleDragStart(e) {
+      e.dataTransfer.setData('text/plain', e.target.getAttribute('data-item'));
+      e.target.classList.add('dragging');
+    }
+    function handleDragEnd(e) {
+      e.target.classList.remove('dragging');
+    }
+
+    // ---------- 放置区事件绑定 ----------
+    Object.values(dropZones).forEach(zone => {
+      if (!zone) return;
+      zone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        zone.classList.add('over');
+      });
+      zone.addEventListener('dragleave', () => {
+        zone.classList.remove('over');
+      });
+      zone.addEventListener('drop', handleDrop);
+    });
+
+    function handleDrop(e) {
+      e.preventDefault();
+      const zone = e.currentTarget;
+      zone.classList.remove('over');
+
+      const step = zone.dataset.step; // 对应状态中的键
+      const expected = zone.dataset.expected; // 期望的器材名称
+      const droppedItem = e.dataTransfer.getData('text/plain');
+
+      // 检查该步骤是否已锁定
+      if (state.locks[step]) {
+        addLog(`⚠️ 步骤 ${step} 已锁定，不能重复操作`);
+        return;
+      }
+
+      // 判断正确性
+      const correct = (droppedItem === expected);
+      const scoreKey = step; // scores中对应的键
+      const scoreValue = correct ? 0.5 : 0; // 除了light等是1分？这里统一0.5，后面计算时调整
+
+      // 记录得分和锁定
+      state.scores[step] = scoreValue;
+      state.locks[step] = true;
+
+      // 更新放置区样式
+      zone.setAttribute('data-correct', correct ? 'true' : 'false');
+      // 更新状态指示器
+      if (statusSpans[step]) {
+        statusSpans[step].innerHTML = correct ? '✅ 正确' : '❌ 错误';
+      }
+
+      // 日志
+      if (correct) {
+        addLog(`✅ 步骤 ${step} 正确 (使用 ${droppedItem}) +0.5`);
+        // 让对应的器材闪烁一下
+        const srcInstrument = document.querySelector(`.instrument[data-item="${droppedItem}"]`);
+        if (srcInstrument) {
+          srcInstrument.classList.add('instrument-animate');
+          setTimeout(() => srcInstrument.classList.remove('instrument-animate'), 1000);
+        }
+        // 更新提示区
+        sliceAnim.innerText = `✅ 正确：${expected}`;
+        sliceAnim.classList.add('animate');
+        setTimeout(() => sliceAnim.classList.remove('animate'), 600);
+      } else {
+        addLog(`❌ 步骤 ${step} 错误 (使用了 ${droppedItem}，应该用 ${expected}) 扣0.5`);
+        sliceAnim.innerText = `❌ 错误：应该用 ${expected}`;
+        sliceAnim.classList.add('animate');
+        setTimeout(() => sliceAnim.classList.remove('animate'), 600);
+      }
+
+      // 检查是否需要特殊处理对光等分数（light等本应为1分，但这里统一0.5，后面计算时调整）
+      // 对光 light 本应为1分，我们单独处理
+      if (step === 'light' && correct) {
+        // 对光正确，应该+1分，但我们现在scores.light存0.5，计算时特殊处理
+        // 标记为正确对光
+        state.scores.light = true; // 用布尔表示
+      } else if (step === 'light' && !correct) {
+        state.scores.light = false;
+      }
+      if (step === 'stageDown' && correct) state.scores.stageDown = 0.5;
+      if (step === 'seeImage' && correct) state.scores.seeImage = 0.5;
+
+      // 如果所有步骤都完成，可以自动计算？不，由整理按钮触发
+    }
+
+    // ---------- 清点器材模态框 ----------
+    function buildEquipGrid() {
+      equipGrid.innerHTML = '';
+      // 清点器材只包含原清单，不包括操作牌和刀片？但原清单没有刀片，但实验需要刀片，我们就在清点时也包含刀片，但干扰项不变。
+      const basicRequired = [
+        '显微镜', '滴管', '镊子', '毛笔', '清水', '小木板',
+        '纱布', '吸水纸', '载玻片', '盖玻片', '新鲜菠菜叶片', '培养皿', '刀片'
+      ];
+      const basicDistract = ['酒精灯', '试管', '火柴'];
+      const basicAll = [...basicRequired, ...basicDistract];
+      basicAll.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'equip-item';
+        const isReq = basicRequired.includes(item);
+        div.innerHTML = `<input type="checkbox" value="${item}" data-req="${isReq}"> <span>${item}</span>`;
+        equipGrid.appendChild(div);
+      });
+    }
+    buildEquipGrid();
+
+    prepareBtn.addEventListener('click', () => {
+      if (state.locks.prepare) {
+        addLog('⚠️ 准备步骤已锁定，不能再次清点');
+        return;
+      }
+      equipModal.style.display = 'flex';
+    });
+
+    closeEquipBtn.addEventListener('click', () => {
+      equipModal.style.display = 'none';
+    });
+
+    submitEquip.addEventListener('click', () => {
+      if (state.locks.prepare) {
+        equipModal.style.display = 'none';
+        return;
+      }
+      const checkboxes = document.querySelectorAll('#equipGrid input[type="checkbox"]');
+      let selected = [];
+      checkboxes.forEach(cb => { if (cb.checked) selected.push(cb.value); });
+
+      const required = [
+        '显微镜', '滴管', '镊子', '毛笔', '清水', '小木板',
+        '纱布', '吸水纸', '载玻片', '盖玻片', '新鲜菠菜叶片', '培养皿', '刀片'
+      ];
+      const missing = required.filter(r => !selected.includes(r));
+      const extra = selected.filter(s => !required.includes(s));
+      const correct = missing.length === 0 && extra.length === 0;
+
+      if (correct) {
+        state.scores.prepare = 0.5;
+        addLog('✅ 清点器材正确 +0.5');
+        prepareStatus.innerText = '✅ 器材正确 (0.5)';
+      } else {
+        state.scores.prepare = 0;
+        state.locks.prepare = true;
+        addLog(`❌ 清点错误 (缺:${missing.join() || '无'}/多:${extra.join() || '无'}) 扣0.5`);
+        prepareStatus.innerText = '❌ 器材错误 (已扣分)';
+      }
+      equipModal.style.display = 'none';
+    });
+
+    // 记录报告
+    recordBtn.addEventListener('click', () => {
+      if (state.locks.report) return;
+      const answer = reportInput.value.trim();
+      const must = ['保护组织', '营养组织', '输导组织', '机械组织'];
+      const ok = must.every(m => answer.includes(m));
+      if (ok) {
+        state.scores.report = 0.5;
+        addLog('✅ 实验结论正确 +0.5');
+        recordStatus.innerText = '✅ 记录正确';
+      } else {
+        state.scores.report = 0;
+        addLog('❌ 实验结论错误 扣0.5');
+        recordStatus.innerText = '❌ 结论错误';
+      }
+      state.locks.report = true;
+      reportInput.disabled = true;
+    });
+
+    // 整理器材 & 计算总分
+    tidyBtn.addEventListener('click', () => {
+      reportModal.style.display = 'flex';
+      calculateTotal();
+    });
+
+    closeReportBtn.addEventListener('click', () => {
+      reportModal.style.display = 'none';
+    });
+
+    // 重新开始
+    restartBtn.addEventListener('click', resetAll);
+
+    window.addEventListener('click', (e) => {
+      if (e.target.classList.contains('modal')) {
+        e.target.style.display = 'none';
+      }
+    });
+
+    // ---------- 工具函数 ----------
+    function addLog(message) {
+      const now = new Date();
+      const time = `[${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}]`;
+      const logMsg = `${time} ${message}`;
+      state.log.push(logMsg);
+      logPanel.innerHTML = state.log.map(l => `<div>${l}</div>`).join('');
+      logPanel.scrollTop = logPanel.scrollHeight;
+    }
+
+    function calculateTotal() {
+      let total = 5;
+      const penalties = [];
+
+      if (state.scores.prepare !== 0.5) { total -= 0.5; penalties.push('清点器材错误'); }
+      if (state.scores.cut !== 0.5) { total -= 0.5; penalties.push('小木板放置错误'); }
+      if (state.scores.blade !== 0.5) { total -= 0.5; penalties.push('刀片错误'); }
+      if (state.scores.dip !== 0.5) { total -= 0.5; penalties.push('蘸水错误'); }
+      if (state.scores.brush !== 0.5) { total -= 0.5; penalties.push('毛笔选取错误'); }
+      if (state.scores.micro !== 0.5) { total -= 0.5; penalties.push('显微镜放置错误'); }
+      // 对光light 本应为1分，但这里用布尔，正确为true，错误为false
+      if (state.scores.light !== true) { total -= 1; penalties.push('对光错误'); }
+      if (state.scores.stageDown !== 0.5) { total -= 0.5; penalties.push('下降镜筒错误'); }
+      if (state.scores.seeImage !== 0.5) { total -= 0.5; penalties.push('物像错误'); }
+      if (state.scores.report !== 0.5) { total -= 0.5; penalties.push('实验报告错误'); }
+      if (state.scores.clean !== 0.5) { total -= 0.5; penalties.push('清理还原错误'); }
+
+      if (penalties.length === 0) {
+        addLog('✅ 实验完美，得分5分');
+      } else {
+        showPenalty(penalties.join('；') + ` 最终得分：${total}分`);
+      }
+    }
+
+    function showPenalty(details) {
+      scoreReason.style.display = 'block';
+      scoreReason.innerHTML = `❌ 扣分详情：${details}`;
+    }
+
+    function resetAll() {
+      state.scores = {
+        prepare: undefined,
+        cut: undefined,
+        blade: undefined,
+        dip: undefined,
+        brush: undefined,
+        micro: undefined,
+        light: undefined,
+        stageDown: undefined,
+        seeImage: undefined,
+        report: undefined,
+        clean: undefined
+      };
+      state.locks = {
+        prepare: false,
+        cut: false,
+        blade: false,
+        dip: false,
+        brush: false,
+        micro: false,
+        light: false,
+        stageDown: false,
+        seeImage: false,
+        report: false,
+        clean: false
+      };
+      state.log = ['[00:00] 实验重新开始'];
+      logPanel.innerHTML = '<div>[00:00] 实验重新开始</div>';
+      prepareStatus.innerText = '⏳ 未开始';
+      recordStatus.innerText = '⏳ 未记录';
+      reportInput.value = '';
+      reportInput.disabled = false;
+      sliceAnim.innerText = '✂️ 等待操作...';
+      scoreReason.style.display = 'none';
+      equipModal.style.display = 'none';
+      reportModal.style.display = 'none';
+
+      // 重置放置区样式
+      Object.keys(dropZones).forEach(key => {
+        const zone = dropZones[key];
+        if (zone) {
+          zone.removeAttribute('data-correct');
+        }
+        if (statusSpans[key]) {
+          statusSpans[key].innerHTML = '⏳';
+        }
+      });
+
+      // 重新构建器材（保证拖拽属性）
+      buildInstruments();
+    }
+
+    // 初始化状态
+    resetAll(); // 顺便构建一次
+  });
+})();
