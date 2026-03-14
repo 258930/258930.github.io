@@ -162,7 +162,13 @@
             </div>
             <div class="status-indicator" id="objectiveInfo">⚡ 当前物镜：4×</div>
         </div>
-        
+        <div class="control-group">
+            <label>遮光器</label>
+            <div class="btn-group">
+                <button class="btn" id="rotateDiaphragm">🔄 旋转遮光器</button>
+            </div>
+            <div class="status-indicator" id="diaphragmInfo">⚙️ 当前通光孔：标准</div>
+        </div>
         <div class="control-group">
             <label>反光镜 (光源亮度)</label>
             <input type="range" class="slider" id="mirrorAngle" min="0" max="100" value="70">
@@ -192,12 +198,28 @@
             • 物镜切换：转盘+物镜联动旋转
         </div>
         <!-- 操作日志 -->
-<div class="info-text" style="margin-top:10px; background: rgba(0,0,0,0.4); border-left: 3px solid #fff;">
+
+    </div>
+    <!-- 操作日志 → 页面最右上角 -->
+<div style="
+    position: fixed;
+    top: 20px;          /* 距离顶部 */
+    right: 20px;        /* 距离右侧 */
+    z-index: 9999;      /* 最顶层显示 */
+    width: 280px;
+    background: rgba(30, 30, 40, 0.9);
+    color: #fff;
+    padding: 15px;
+    border-radius: 12px;
+    font-size: 14px;
+    backdrop-filter: blur(10px);
+    border: 1px solid #4CAF50;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+">
     📝 操作日志：<br>
     <div id="logText" style="color:#fff; font-size:12px; margin-top:4px;">
     </div>
 </div>
-    </div>
 <!-- 目镜视野窗口 -->
 <div id="eyepiece-container">
     <div id="eyepiece-view">
@@ -304,7 +326,8 @@
             objective10x: 'Dibeiwujing2',    // 10倍（子物体）
             objective40x: 'Gaobeiwujing',    // 40倍（子物体）
             zhou: '07d1d79e-a81f-4d02-adda-5178564698c0',
-            zhou2:'5a4859c5-2c37-4559-b517-16a9722831d8'
+            zhou2:'5a4859c5-2c37-4559-b517-16a9722831d8',
+            zheguangqi:'Zheguangqi',
         };
 
         // 三挡卡位角度 0° / 120° / 240°
@@ -472,7 +495,17 @@ function bindModelPartsByUUID(model) {
    // 转换器旋转动画（真实显微镜丝滑效果）
 function switchObjective(index) {
     if (!modelNodes.nosepiece) return;
-    
+      // 检测错误切换（示例：切换次数过多）
+    if (!scoreState.violations.objectiveSwitch) {
+        // 记录切换次数
+        if (!window.switchCount) window.switchCount = 0;
+        window.switchCount++;
+        
+        if (window.switchCount > 3) { // 切换超过3次扣分
+            scoreState.violations.objectiveSwitch = true;
+            deductScore('物镜切换次数过多', 1);
+        }
+    }
     currentObjective = index;
     
     // 3个位置：0°  120°  240°（三孔转换器标准角度）
@@ -484,6 +517,16 @@ function switchObjective(index) {
      const logTexts = ["已切换至 4× 低倍物镜", "已切换至 10× 中倍物镜", "已切换至 40× 高倍物镜"];
     document.getElementById("objectiveInfo").innerText = `⚡ 当前物镜：${objTexts[index]}`;
  addLog(logTexts[index]);
+   flashKnob('nosepiece');
+   // 根据索引闪烁对应的物镜
+ // 根据索引闪烁对应的物镜
+    if (index === 0) {
+        flashKnob('objective4x');
+    } else if (index === 1) {
+        flashKnob('objective40x');
+    } else if (index === 2) {
+        flashKnob('objective10x');
+    }
     // ==============================================
     // ✅ GSAP 丝滑旋转 + 机械咔哒回弹（真实显微镜手感）
     // ==============================================
@@ -522,8 +565,8 @@ document.getElementById("placeSlide").onclick = () => {
         adjustSlider("coarseFocus",-5);
         flashKnob('coarseKnob');
         flashKnob('coarseKnobR');
-         state.blurAmount += 2;
-         addLog("粗准焦：物象已变模糊");
+        //  state.blurAmount += 2;
+        //  addLog("粗准焦：物象已变模糊");
     }
     
     document.getElementById("coarseUp").onclick = () => { 
@@ -531,8 +574,8 @@ document.getElementById("placeSlide").onclick = () => {
         adjustSlider("coarseFocus",5);
         flashKnob('coarseKnob');
         flashKnob('coarseKnobR');
-        state.blurAmount -= 2
-         addLog("粗准焦：物象已变模糊");
+        // state.blurAmount -= 2
+        //  addLog("粗准焦：物象已变模糊");
     }
 
     const fine = document.getElementById("fineFocus");
@@ -543,7 +586,7 @@ document.getElementById("placeSlide").onclick = () => {
         adjustSlider("fineFocus",-3);
         flashKnob('fineKnob');
         flashKnob('fineKnobR');
-          state.blurAmount -= 1;
+          //state.blurAmount -= 1;
 
     if(state.blurAmount <= state.bestBlur) {
         addLog("✅ 细准焦：物象已调节至最清晰！");
@@ -557,7 +600,7 @@ document.getElementById("placeSlide").onclick = () => {
         adjustSlider("fineFocus",3);
         flashKnob('fineKnob');
         flashKnob('fineKnobR');
-         state.blurAmount += 1;
+        // state.blurAmount += 1;
 
     if(state.blurAmount <= state.bestBlur) {
         addLog("✅ 细准焦：物象已调节至最清晰！");
@@ -621,6 +664,33 @@ function flashElements(elementIds, flashColor = 'yellow', duration = 200) {
     if(modelNodes.zhou2) modelNodes.zhou2.position.z += offset;
     // 转换器一动，三个物镜自动同步动
     if(modelNodes.nosepiece) modelNodes.nosepiece.position.z += offset;
+     state.blurAmount += offset * 2;  // 用offset直接控制，不依赖正负判断
+    
+    // 限制blur范围，防止无限大或负数
+    state.blurAmount = Math.max(0, Math.min(40, state.blurAmount));
+     // 检测错误操作（示例规则）
+    if (Math.abs(offset) > 1) { // 粗准焦调节过快
+        if (!scoreState.violations.coarseFocus) {
+            scoreState.violations.coarseFocus = true;
+            deductScore('粗准焦调节过快', 0.5);
+        }
+    }
+    
+    if (state.blurAmount > 30) { // 调焦过度
+        if (!scoreState.violations.fineFocus) {
+            scoreState.violations.fineFocus = true;
+            deductScore('调焦过度，图像模糊', 0.5);
+        }
+    }
+    
+    // 判断是否接近最清晰（假设最佳清晰度是某个值，比如5）
+    if (Math.abs(state.blurAmount - 7) < 2) {
+        addLog("✅ 物象已调节至最清晰！");
+    } else if (state.blurAmount > 7) {
+        addLog("⬆️ 物象变模糊了（调焦过度）");
+    } else {
+        addLog("⬇️ 物象正在变清晰");
+    }
 }
         function updateCoarseFocus(v) { adjustFocus((v-0.5)*1.5); }
         function updateFineFocus(v) { adjustFocus((v-0.5)*0.3); }
@@ -673,8 +743,50 @@ const state = {
     blurAmount: 20,  // 新增：模糊值
     bestBlur: 0,  // 最清晰值（可改)
     mirrorBrightness: 0.7,  // 新增：反光镜亮度
-     slidePlaced: false // 新增：切片是否放置
+     slidePlaced: false, // 新增：切片是否放置
+      diaphragmLevel: 0
 };
+const scoreState = {
+    totalDeduction: 0,        // 总扣分
+    maxDeduction: 2,          // 最多扣2分
+    violations: {
+        coarseFocus: false,    // 粗准焦错误
+        fineFocus: false,      // 细准焦错误
+        objectiveSwitch: false // 物镜切换错误
+    }
+};
+// 扣分函数
+function deductScore(reason, points) {
+    if (scoreState.totalDeduction >= scoreState.maxDeduction) return;
+    
+    // 计算实际扣分（不超过剩余可扣分数）
+    const remaining = scoreState.maxDeduction - scoreState.totalDeduction;
+    const actualDeduction = Math.min(points, remaining);
+    
+    if (actualDeduction > 0) {
+        scoreState.totalDeduction += actualDeduction;
+        
+        // 发送扣分信息到父页面（index.html）
+        if (window.opener) {
+            window.opener.postMessage({
+                type: 'microscope-deduction',
+                reason: reason,
+                points: actualDeduction,
+                totalDeduction: scoreState.totalDeduction
+            }, '*');
+        }
+        
+        // 也可以使用 localStorage 传递（备选方案）
+        localStorage.setItem('microscopeDeduction', JSON.stringify({
+            reason: reason,
+            points: actualDeduction,
+            totalDeduction: scoreState.totalDeduction,
+            timestamp: Date.now()
+        }));
+        
+        addLog(`⚠️ 扣分：${reason} (-${actualDeduction}分)`);
+    }
+}
 // 日志输出函数
 function addLog(text) {
     const log = document.getElementById('logText');
@@ -705,22 +817,64 @@ function updateEyepieceEffect() {
     img.style.filter = `blur(${displayBlur}px)`;
     img.style.opacity = brightness; // 这里！用透明度匹配亮度，100%无缝
 }
+document.getElementById("rotateDiaphragm").onclick = () => {
+    rotateDiaphragm();
+};
+// 遮光器旋转（丝滑动画 + 闪烁 + 日志）
+// 遮光器旋转（无限顺时针 + 丝滑动画 + 闪烁 + 日志）
+let diaphragmTotalRotation = 0; // 全局累计旋转角度
+function rotateDiaphragm() {
+    if (!modelNodes.zheguangqi) return;
+
+    // 每次点击 +1 档位（0=标准，1=最大）
+    state.diaphragmLevel = (state.diaphragmLevel + 1) % 2;
+
+    // 每次都 **顺时针旋转固定角度**（60度，很自然）
+    diaphragmTotalRotation += Math.PI / 3; 
+
+    // 日志 + 状态
+    if (state.diaphragmLevel === 1) {
+          addLog("🔄 已旋转遮光器至标准通光孔");
+        document.getElementById("diaphragmInfo").innerText = "⚙️ 当前通光孔：标准";
+     
+    } else {
+         addLog("✅ 已转换至最大通光孔");
+        document.getElementById("diaphragmInfo").innerText = "⚙️ 当前通光孔：最大";
+    }
+
+    // 遮光器闪烁
+    flashKnob('zheguangqi');
+
+    // 丝滑 顺时针旋转动画（永远顺时针！）
+    gsap.to(modelNodes.zheguangqi.rotation, {
+        z: diaphragmTotalRotation, // 累计角度，一直顺时针
+        duration: 0.5,
+        ease: "back.out(1.2)",
+        overwrite: true,
+    });
+}
 function flashKnob(knobName) {
     const knob = modelNodes[knobName];
     if (!knob) return;
 
     // 创建一个临时的高亮材质
     const originalMaterials = [];
-    
-    knob.traverse(n => {
-        if (n.isMesh && n.material) {
-            originalMaterials.push({
-                mesh: n,
-                material: n.material,
-                materialIndex: -1
-            });
-        }
-    });
+     // 改为只处理当前节点，不遍历子物体
+    if (knob.isMesh && knob.material) {
+        originalMaterials.push({
+            mesh: knob,
+            material: knob.material
+        });
+    }
+    // knob.traverse(n => {
+    //     if (n.isMesh && n.material) {
+    //         originalMaterials.push({
+    //             mesh: n,
+    //             material: n.material,
+    //             materialIndex: -1
+    //         });
+    //     }
+    // });
 
     let count = 0;
     const interval = setInterval(() => {
