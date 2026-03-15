@@ -166,11 +166,17 @@ document.addEventListener('DOMContentLoaded', () => {
     stage.addEventListener('drop', (e) => {
         if(state.isAnswering) return;
         const name = e.dataTransfer.getData('text');
-        // 拖拽前弹题
+  if (name === '小木板') {
+        // 先显示实验操作视频，视频关闭后再执行后续操作
+        showUseVideoModal(() => {
+            state.pendingOperation = () => handleExperimentLogic(name);
+            showQuizModal(2);
+        });
+    } else {
+        // 其他物品的拖拽保持原样
         state.pendingOperation = () => handleExperimentLogic(name);
-        
         showQuizModal(1);
-        
+    }
         
     });
 
@@ -887,9 +893,9 @@ function showCheckVideoModal() {
 }
 
 // ==========================
-// 【实验操作专用视频】caozuo.mp4
+// 【实验操作专用视频】caozuo.mp4（支持回调）
 // ==========================
-function showUseVideoModal() {
+function showUseVideoModal(callback = null) {
   let videoModal = document.getElementById('use-video-modal');
   if (videoModal) {
     videoModal.remove();
@@ -902,7 +908,7 @@ function showUseVideoModal() {
     <div class="modal-content" style="max-width: 900px; width: 90%;">
       <h3>🎬 实验操作教学视频</h3>
       <div style="position: relative; padding-bottom: 56.25%; height: 0; margin:15px 0;">
-        <video id="use-video" style="position:absolute; top:0; left:0; width:100%; height:100%; border-radius:8px;"  autoplay controls>
+        <video id="use-video" style="position:absolute; top:0; left:0; width:100%; height:100%; border-radius:8px;" controls autoplay>
           <source src="caozuo.mp4" type="video/mp4">
         </video>
       </div>
@@ -916,14 +922,20 @@ function showUseVideoModal() {
     // 获取视频元素并停止播放
     const video = document.getElementById('use-video');
     if (video) {
-      video.pause(); // 暂停视频
-      video.currentTime = 0; // 重置到开始位置
+      video.pause();
+      video.currentTime = 0;
     }
     videoModal.style.display = 'none';
-    showQuizModal(1);
+    
+    // 执行回调函数（如果存在）
+    if (callback) {
+      callback();
+    } else {
+      // 原来的逻辑：直接弹出题目
+      showQuizModal(1);
+    }
   };
 }
-
 function showMessageModalWithCallback(message, isError = true, imageUrl = null, callback) {
     let msgModal = document.getElementById('message-modal');
     if (!msgModal) {
