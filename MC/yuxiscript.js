@@ -30,23 +30,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // 新增：type: 'image' 表示图片题，src放图片路径，answer是标准答案
     const questionBank = {
         1: [ // 分类1：刀片蘸水相关
-            {
-                id: 101,
-                title: "制作叶片切片时，切割前刀片必须蘸水的目的是？",
-                options: [
-                    "A. 防止刀片生锈",
-                    "B. 使切下的薄片粘在刀片上，避免散落",
-                    "C. 润滑刀片，切割更省力",
-                    "D. 清洁刀片"
-                ],
-                answer: "B"
-            },
+            // {
+            //     id: 101,
+            //     title: "制作叶片切片时，切割前刀片必须蘸水的目的是？",
+            //     options: [
+            //         "A. 防止刀片生锈",
+            //         "B. 使切下的薄片粘在刀片上，避免散落",
+            //         "C. 润滑刀片，切割更省力",
+            //         "D. 清洁刀片"
+            //     ],
+            //     answer: "B"
+            // },
             {
                 id: 102,
                 type: 'image', // 图片题标识
-                src: "https://via.placeholder.com/600x400?text=刀片蘸水示意图", // 图片地址
-                title: "观察图片，写出刀片蘸水后立即切割的主要原因（填写文字）",
-                answer: "保证切片湿润不卷曲" // 标准答案
+                src: "./daopianti.png", // 图片地址
+                title: "请选出正确答案",
+                answer: "B" // 标准答案
             }
         ],
         2: [ // 分类2：显微镜粗准焦相关
@@ -864,7 +864,7 @@ function showCheckVideoModal() {
     <div class="modal-content" style="max-width: 900px; width: 90%;">
       <h3>🎬 器材清点教学视频</h3>
       <div style="position: relative; padding-bottom: 56.25%; height: 0; margin:15px 0;">
-        <video style="position:absolute; top:0; left:0; width:100%; height:100%; border-radius:8px;" controls>
+        <video id="check-video" style="position:absolute; top:0; left:0; width:100%; height:100%; border-radius:8px;" autoplay controls>
           <source src="qingdian.mp4" type="video/mp4">
         </video>
       </div>
@@ -875,10 +875,15 @@ function showCheckVideoModal() {
   videoModal.style.display = 'flex';
 
   document.getElementById('close-check-video').onclick = () => {
+    // 获取视频元素并停止播放
+    const video = document.getElementById('check-video');
+    if (video) {
+      video.pause(); // 暂停视频
+      video.currentTime = 0; // 重置到开始位置
+      video.muted = true; // 可选：静音
+    }
     videoModal.style.display = 'none';
-      showQuizModal(1);
   };
-
 }
 
 // ==========================
@@ -897,8 +902,8 @@ function showUseVideoModal() {
     <div class="modal-content" style="max-width: 900px; width: 90%;">
       <h3>🎬 实验操作教学视频</h3>
       <div style="position: relative; padding-bottom: 56.25%; height: 0; margin:15px 0;">
-        <video style="position:absolute; top:0; left:0; width:100%; height:100%; border-radius:8px;" controls>
-         <source src="caozuo.mp4" type="video/mp4">
+        <video id="use-video" style="position:absolute; top:0; left:0; width:100%; height:100%; border-radius:8px;"  autoplay controls>
+          <source src="caozuo.mp4" type="video/mp4">
         </video>
       </div>
       <button id="close-use-video" class="btn-blue">关闭视频，开始实验</button>
@@ -908,48 +913,198 @@ function showUseVideoModal() {
   videoModal.style.display = 'flex';
 
   document.getElementById('close-use-video').onclick = () => {
+    // 获取视频元素并停止播放
+    const video = document.getElementById('use-video');
+    if (video) {
+      video.pause(); // 暂停视频
+      video.currentTime = 0; // 重置到开始位置
+    }
     videoModal.style.display = 'none';
-       showQuizModal(1);
+    showQuizModal(1);
   };
-
 }
-    document.getElementById('submitEquip').onclick = () => {
-        const checkedItems = Array.from(document.querySelectorAll('#equipGrid input:checked')).map(i => i.value);
-        const selectedDistract = checkedItems.filter(v => distractEquips.includes(v));
-        const missingRequired = requiredEquips.filter(v => !checkedItems.includes(v));
-        let logMsg = "";
-        if (selectedDistract.length > 0 && missingRequired.length > 0) {
-            logMsg = `❌ 器材清点错误：多选了${selectedDistract.join('、')}，漏选了${missingRequired.join('、')} → 扣0.5分`;
-            state.totalDeduction += 0.5;
-            state.details.push(`清点器材：多选${selectedDistract.length}个干扰项/漏选${missingRequired.length}个必需项 (-0.5)`);
-        } else if (selectedDistract.length > 0) {
-            logMsg = `❌ 器材清点错误：多选了干扰项${selectedDistract.join('、')} → 扣0.5分`;
-            state.totalDeduction += 0.5;
-            state.details.push(`清点器材：多选${selectedDistract.length}个干扰项 (-0.5)`);
-        } else if (missingRequired.length > 0) {
-            logMsg = `❌ 器材清点错误：漏选了必需器材${missingRequired.join('、')} → 扣0.5分`;
-            state.totalDeduction += 0.5;
-            state.details.push(`清点器材：漏选${missingRequired.length}个必需项 (-0.5)`);
-        } else {
-            logMsg = "✅ 器材清点正确！已解锁实验操作";
-             setTimeout(() => {
-        showUseVideoModal(); 
-    }, 500);
+
+function showMessageModalWithCallback(message, isError = true, imageUrl = null, callback) {
+    let msgModal = document.getElementById('message-modal');
+    if (!msgModal) {
+        msgModal = document.createElement('div');
+        msgModal.id = 'message-modal';
+        msgModal.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            z-index: 2000;
+            text-align: center;
+            min-width: 300px;
+            max-width: 90%;
+            border-top: 5px solid ${isError ? '#f44336' : '#4caf50'};
+        `;
+        document.body.appendChild(msgModal);
+    }
+    
+    // 构建内容
+    let content = `
+        <div style="margin-bottom: 15px; font-size: 24px;">
+            ${isError ? '❌' : '✅'}
+        </div>
+        <div style="margin-bottom: 20px; color: ${isError ? '#f44336' : '#4caf50'}; font-weight: bold;">
+            器材清点提示
+        </div>
+        <div style="margin-bottom: 20px;">${message}</div>
+    `;
+    
+    // 如果有图片，就插入到内容里
+    if (imageUrl) {
+        content += `
+            <div style="margin-bottom: 20px;">
+                <img src="${imageUrl}" alt="刀片对比图" style="max-width: 100%; max-height: 300px; border-radius: 5px;">
+            </div>
+        `;
+    }
+    
+    content += `
+        <button id="message-modal-confirm" 
+                style="background: ${isError ? '#f44336' : '#4caf50'}; color: white; border: none; padding: 8px 20px; border-radius: 5px; cursor: pointer;">
+            确定
+        </button>
+    `;
+    
+    msgModal.innerHTML = content;
+    msgModal.style.display = 'block';
+    
+    // 移除之前的监听器，添加新的
+    const confirmBtn = document.getElementById('message-modal-confirm');
+    confirmBtn.onclick = () => {
+        msgModal.style.display = 'none';
+        if (callback) {
+            callback(); // 执行回调函数（这里就是 showQuizModal(1)）
         }
-        if (selectedDistract.length > 0 || missingRequired.length > 0) {
-            state.prepared = false;
-            document.getElementById('s-prepare').innerText = "❌ 清点错误，请重新清点";
-        } else {
-            state.prepared = true;
-            document.getElementById('s-prepare').innerText = "✅ 清点正确（可开始拖拽操作）";
-            initShelf(); 
-            shelf.style.display = 'flex';
-            guide.innerText = "请将「小木板」拖入实验区开始实验";
-        }
-        addLog(logMsg);
-        document.getElementById('equip-modal').style.display = 'none';
+    };
+    
+    // 如果是错误情况，可以3秒后自动关闭，但不执行回调
+    if (isError) {
+        setTimeout(() => {
+            msgModal.style.display = 'none';
+        }, 3000);
+    }
+}
+function showMessageModal(message, isError = true, imageUrl = null, onClose = null) {
+    let msgModal = document.getElementById('message-modal');
+    if (!msgModal) {
+        msgModal = document.createElement('div');
+        msgModal.id = 'message-modal';
+        msgModal.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            z-index: 2000;
+            text-align: center;
+            min-width: 300px;
+            max-width: 90%;
+            border-top: 5px solid ${isError ? '#f44336' : '#4caf50'};
+        `;
+        document.body.appendChild(msgModal);
+    }
+    
+    let content = `
+        <div style="margin-bottom: 15px; font-size: 24px;">
+            ${isError ? '❌' : '✅'}
+        </div>
+        <div style="margin-bottom: 20px; color: ${isError ? '#f44336' : '#4caf50'}; font-weight: bold;">
+            器材清点提示
+        </div>
+        <div style="margin-bottom: 20px;">${message}</div>
+    `;
+    
+    if (imageUrl) {
+        content += `
+            <div style="margin-bottom: 20px;">
+                <img src="${imageUrl}" alt="刀片对比图" style="max-width: 100%; max-height: 300px; border-radius: 5px;">
+            </div>
+        `;
+    }
+    
+    content += `
+        <button id="msg-confirm-btn" 
+                style="background: ${isError ? '#f44336' : '#4caf50'}; color: white; border: none; padding: 8px 20px; border-radius: 5px; cursor: pointer;">
+            确定
+        </button>
+    `;
+    
+    msgModal.innerHTML = content;
+    msgModal.style.display = 'block';
+
+    // 绑定关闭事件
+    const btn = document.getElementById('msg-confirm-btn');
+    btn.onclick = () => {
+        msgModal.style.display = 'none';
+        if (onClose) onClose(); // 关闭后执行回调
     };
 
+    // ❌ 只有错误才自动关闭，成功不自动关闭
+    if (isError) {
+        setTimeout(() => {
+            msgModal.style.display = 'none';
+        }, 5000);
+    }
+}
+// 修改点击事件
+document.getElementById('submitEquip').onclick = () => {
+    const checkedItems = Array.from(document.querySelectorAll('#equipGrid input:checked')).map(i => i.value);
+    const selectedDistract = checkedItems.filter(v => distractEquips.includes(v));
+    const missingRequired = requiredEquips.filter(v => !checkedItems.includes(v));
+    let logMsg = "";
+    
+    if (selectedDistract.length > 0 && missingRequired.length > 0) {
+        logMsg = `这次器材清点有小疏漏哦，下次清点时可以对照实验器材清单逐一核对，确保“不缺件、无损坏”再开始实验`
+        state.totalDeduction += 0.5;
+        state.details.push(`清点器材：多选${selectedDistract.length}个干扰项/漏选${missingRequired.length}个必需项 (-0.5)`);
+        showMessageModal(logMsg, true);
+    } else if (selectedDistract.length > 0) {
+        logMsg = `这次器材清点有小疏漏哦，下次清点时可以对照实验器材清单逐一核对，确保“不缺件、无损坏”再开始实验`
+        state.totalDeduction += 0.5;
+        state.details.push(`清点器材：多选${selectedDistract.length}个干扰项 (-0.5)`);
+          showMessageModal(logMsg, true);
+    } else if (missingRequired.length > 0) {
+        logMsg = `这次器材清点有小疏漏哦，下次清点时可以对照实验器材清单逐一核对，确保“不缺件、无损坏”再开始实验`
+        state.totalDeduction += 0.5;
+        state.details.push(`清点器材：漏选${missingRequired.length}个必需项 (-0.5)`);
+         showMessageModal(logMsg, true);
+    } else {
+        logMsg = `精准核对了实验所需的全部器材，体现了你细致严谨的科学素养，值得点赞！`
+        //addLog(logMsg);
+        
+        // 成功时显示绿色弹窗，并在关闭后弹出题目
+        showMessageModalWithCallback(logMsg, false, './图片1.png', () => {
+            showQuizModal(1);
+        });
+    }
+    
+    if (selectedDistract.length > 0 || missingRequired.length > 0) {
+        state.prepared = false;
+        document.getElementById('s-prepare').innerText = "❌ 清点错误，请重新清点";
+    } else {
+        state.prepared = true;
+        document.getElementById('s-prepare').innerText = "✅ 清点正确（可开始拖拽操作）";
+        initShelf(); 
+        shelf.style.display = 'flex';
+        guide.innerText = "请将「小木板」拖入实验区开始实验";
+    }
+    
+    // 只添加一次日志
+    addLog(logMsg);
+    document.getElementById('equip-modal').style.display = 'none';
+};
     document.getElementById('recordBtn').onclick = () => {
         const val = document.getElementById('reportInput').value.trim();
         const keywords = ['保护组织', '薄壁组织', '输导组织', '机械组织','制作叶片横切面临时切片','观察叶片横切面临时切片'];
