@@ -20,90 +20,140 @@ document.addEventListener('DOMContentLoaded', () => {
     isFineBtnDisabled: true, // 细准焦按钮是否禁用
     isRevolverBtnDisabled: false, // 转换器按钮是否禁用
     isMirrorBtnDisabled: false, // 反光镜按钮是否禁用
-    isSlidePlaceBtnDisabled: false // 载玻片放置按钮是否禁用
+    isSlidePlaceBtnDisabled: false,// 载玻片放置按钮是否禁用
+     hasShownQuiz: {
+        1: false, // 单双面刀片
+        2: false, // 切割蘸水
+        3: false, // 纱布
+        4: false, // 毛笔
+        5: false, // 盖玻片
+        6: false  // 显微镜
+    }
     };
 // 实验题库（按数字分类，可扩展）
-const questionBank = {
-  1: [ // 分类1：刀片蘸水相关
-    {
-      id: 101,
-      title: "制作叶片切片时，切割前刀片必须蘸水的目的是？",
-      options: [
-        "A. 防止刀片生锈",
-        "B. 使切下的薄片粘在刀片上，避免散落",
-        "C. 润滑刀片，切割更省力",
-        "D. 清洁刀片"
-      ],
-      answer: "B"
-    },
-    {
-      id: 102,
-      title: "刀片蘸水后应立即进行切割，主要原因是？",
-      options: [
-        "A. 防止水分蒸发",
-        "B. 避免刀片生锈",
-        "C. 保证切片湿润不卷曲",
-        "D. 操作习惯"
-      ],
-      answer: "C"
-    }
-  ],
-  2: [ // 分类2：显微镜粗准焦相关
-    {
-      id: 201,
-      title: "使用粗准焦螺旋下降镜筒时，眼睛应注视？",
-      options: [
-        "A. 目镜",
-        "B. 物镜",
-        "C. 载物台",
-        "D. 反光镜"
-      ],
-      answer: "B"
-    },
-  ],
-  3: [ // 分类3：切片厚度相关
-    {
-      id: 301,
-      title: "叶片横切面临时切片制作中，最薄的切片才能观察清晰，原因是？",
-      options: [
-        "A. 便于光线透过",
-        "B. 节省材料",
-        "C. 操作更简单",
-        "D. 避免划伤物镜"
-      ],
-      answer: "A"
-    }
-  ],
-  4: [ // 分类4：使用工具
-    {
-      id: 401,
-      title: "显微镜调焦时，先使用粗准焦螺旋再用细准焦螺旋的原因是？",
-      options: [
-        "A. 粗准焦调节范围大，快速找到物像",
-        "B. 细准焦容易损坏",
-        "C. 粗准焦更精准",
-        "D. 操作习惯"
-      ],
-      answer: "A"
-    }
-  ],
-  5: [ // 分类5：提交材料
-    {
-      id: 501,
-      title: "培养皿中加入清水的作用不包括？",
-      options: [
-        "A. 保持切片湿润",
-        "B. 便于毛笔选取切片",
-        "C. 清洗刀片",
-        "D. 防止切片卷曲"
-      ],
-      answer: "C"
-    }
-  ],
-  6: [ // 分类6：可自定义其他类别
-    // 自定义题目...
-  ]
-};
+  const questionBank = {
+        1: [ // 分类1：单双面刀片
+            // {
+            //     id: 101,
+            //     title: "制作叶片切片时，切割前刀片必须蘸水的目的是？",
+            //     options: [
+            //         "A. 防止刀片生锈",
+            //         "B. 使切下的薄片粘在刀片上，避免散落",
+            //         "C. 润滑刀片，切割更省力",
+            //         "D. 清洁刀片"
+            //     ],
+            //     answer: "B"
+            // },
+            {
+                id: 102,
+                type: 'image', // 图片题标识
+                src: "./daopianti.png", // 图片地址
+                title: "请选出正确答案",
+                answer: "B" // 标准答案
+            }
+        ],
+        2: [ // 分类2：切割蘸水
+            {
+                id: 201,
+                title: "在“观察叶片的主要组织”实验中，切割叶片的正确方法是（  ）",
+                options: [
+                    "A. 用一片刀片沿叶的纵向迅速切割",
+                    "B. 用并排的两片刀片沿叶片的横向缓慢切割",
+                    "C. 用并排的两片刀片沿叶的纵向迅速切割",
+                    "D. 用并排的两片刀片沿叶片的横向迅速切割"
+                ],
+                answer: "D"
+            },
+            {
+                id: 202,
+                // type: 'image',
+                // src: "https://via.placeholder.com/600x400?text=显微镜粗准焦操作图",
+                title: "在制作叶横切面的临时切片时，正确的切割方法是刀片蘸水后（　）",
+                 options: [
+                    "A. 迅速地切割",
+                    "B. 缓慢地切下",
+                    "C. 迅速地来回切拉",
+                    "D. 缓慢地来回切拉"
+                ],
+                answer: "A"
+            },
+            {
+                id: 203,
+                type: 'image',
+                src: "./qiegeti.png",
+                title: "请选出正确答案",
+                answer: "D"
+            },
+             {
+                id: 204,
+              title: "在“观察叶片的结构”实验里，徒手切片的过程中，每切一次叶片，刀片都要蘸一下水。蘸水的目的是（　）",
+                 options: [
+                    "A. 使刀片更加锋利",
+                    "B. 可以捏得更紧",
+                    "C. 把切下的薄片放入水中",
+                    "D. 检查有没有切下的叶片"
+                ],
+                answer: "C"
+            }
+        ],
+        3: [ // 分类3：纱布
+            {
+                id: 301,
+                title: "擦载玻片和盖玻片时用一手食指和拇指夹住玻片的两边，另一手食指和拇指包住纱布，同时擦到玻片的两面，用力要均匀",
+                options: [
+                    "A. 正确",
+                    "B. 错误",
+                   
+                ],
+                answer: "A"
+            }
+        ],
+        4: [ // 分类4：毛笔
+            {
+                id: 401,
+                type: 'image',
+                src: "./maobiti.png",
+                title: "请选出正确答案",
+                answer: "D"
+            }
+        ],
+        5: [ // 分类5：盖玻片
+            {
+                id: 501,
+                title: "盖盖玻片时，使盖玻片的一边先接触载玻片上的液滴，然后向标本所在的方向缓缓地放下——避免标本被挤出盖玻片（避免出现气泡）",
+                options: [
+                    "A. 正确",
+                    "B. 错误",
+                ],
+                answer: "A"
+            },
+              {
+                id: 502,
+               type: 'image',
+                src: "./gaibopian.png",
+                title: "请选出正确答案",
+                answer: "C"
+            }
+        ],
+        6: [ // 分类6：显微镜
+              {
+                 id: 601,
+                 title: "取镜时，双手握住镜臂，再将显微镜放在试验台正中央处（实验台中央略偏左）",
+                options: [
+                    "A. 正确",
+                    "B. 错误",
+                ],
+                answer: "A"
+            },
+             {
+                 id: 602,
+               type: 'image',
+                src: "./xianweijingqufang.png",
+                title: "请选出正确答案",
+                answer: "D"
+            }
+        ]
+    };
 const RANDOM_QUESTION_COUNT = 1;
 // 新增答题相关状态
 state.isAnswering = false; // 是否正在答题（禁用实验操作）
@@ -212,11 +262,171 @@ function showTool(name) {
     }
     document.getElementById('dip-water-dish').classList.remove('hidden');
 }
+// ==========================
+// 【通用操作视频弹窗】
+// @param {string} videoSrc - 视频文件路径
+// @param {string} title - 弹窗标题
+// @param {number} category - 题目分类
+// @param {function} callback - 视频关闭后的回调函数（可选）
+// ==========================
+// ==========================
+function showOperationVideoModal(videoSrc, title, category, callback = null) {
+    // 如果该类题目已经弹过，直接返回（避免重复）
+    // if (state.hasShownQuiz[category]) {
+    //     return;
+    // }
+    
+    let videoModal = document.getElementById('operation-video-modal');
+    if (videoModal) {
+        videoModal.remove();
+    }
+
+    videoModal = document.createElement('div');
+    videoModal.id = 'operation-video-modal';
+    videoModal.className = 'modal';
+    
+    videoModal.style.cssText = `
+        display: flex;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        z-index: 10000;
+        justify-content: center;
+        align-items: center;
+    `;
+    
+    videoModal.innerHTML = `
+        <div class="modal-content" style="max-width: 900px; width: 90%; background: white; border-radius: 8px; padding: 20px; position: relative; z-index: 10001;">
+            <h3>🎬 ${title}</h3>
+            <div style="position: relative; padding-bottom: 56.25%; height: 0; margin:15px 0;">
+                <video id="operation-video" style="position:absolute; top:0; left:0; width:100%; height:100%; border-radius:8px;" controls autoplay>
+                    <source src="${videoSrc}" type="video/mp4">
+                </video>
+            </div>
+            <button id="close-operation-video" class="btn-blue" style="padding: 10px 20px; font-size: 16px;">关闭视频，开始答题</button>
+        </div>
+    `;
+    
+    document.body.appendChild(videoModal);
+    videoModal.style.display = 'flex';
+
+    // 移除旧的事件监听器，使用新的事件处理
+    const closeBtn = document.getElementById('close-operation-video');
+    // 移除可能存在的旧监听器
+    closeBtn.replaceWith(closeBtn.cloneNode(true));
+    const newCloseBtn = document.getElementById('close-operation-video');
+    
+    newCloseBtn.onclick = () => {
+        const video = document.getElementById('operation-video');
+        if (video) {
+            video.pause();
+            video.currentTime = 0;
+        }
+        videoModal.style.display = 'none';
+        videoModal.remove();
+        
+        // 视频关闭后弹出对应分类的题目
+        // 注意：这里直接调用 showQuizModal，但 showQuizModal 内部会检查 hasShownQuiz
+        // 所以需要先标记该类为已弹过，否则 showQuizModal 会直接返回
+        if (callback) {
+            callback();
+        } else {
+            // 先标记该类已弹过，再显示题目
+            //state.hasShownQuiz[category] = true;
+            showQuizModal(category);
+        }
+    };
+}
+// ==========================
+// 【清点器材专用视频】qingdian.mp4
+// ==========================
+function showCheckVideoModal() {
+  let videoModal = document.getElementById('check-video-modal');
+  if (videoModal) {
+    videoModal.remove();
+  }
+
+  videoModal = document.createElement('div');
+  videoModal.id = 'check-video-modal';
+  videoModal.className = 'modal';
+  videoModal.innerHTML = `
+    <div class="modal-content" style="max-width: 900px; width: 90%;">
+      <h3>🎬 器材清点教学视频</h3>
+      <div style="position: relative; padding-bottom: 56.25%; height: 0; margin:15px 0;">
+        <video id="check-video" style="position:absolute; top:0; left:0; width:100%; height:100%; border-radius:8px;" autoplay controls>
+          <source src="qingdian.mp4" type="video/mp4">
+        </video>
+      </div>
+      <button id="close-check-video" class="btn-blue">关闭视频，开始清点</button>
+    </div>
+  `;
+  document.body.appendChild(videoModal);
+  videoModal.style.display = 'flex';
+
+  document.getElementById('close-check-video').onclick = () => {
+    // 获取视频元素并停止播放
+    const video = document.getElementById('check-video');
+    if (video) {
+      video.pause(); // 暂停视频
+      video.currentTime = 0; // 重置到开始位置
+      video.muted = true; // 可选：静音
+    }
+    videoModal.style.display = 'none';
+  };
+}
+
+// ==========================
+// 【实验操作专用视频】caozuo.mp4（支持回调）
+// ==========================
+function showUseVideoModal(callback = null) {
+  let videoModal = document.getElementById('use-video-modal');
+  if (videoModal) {
+    videoModal.remove();
+  }
+
+  videoModal = document.createElement('div');
+  videoModal.id = 'use-video-modal';
+  videoModal.className = 'modal';
+  videoModal.innerHTML = `
+    <div class="modal-content" style="max-width: 900px; width: 90%;">
+      <h3>🎬 实验操作教学视频</h3>
+      <div style="position: relative; padding-bottom: 56.25%; height: 0; margin:15px 0;">
+        <video id="use-video" style="position:absolute; top:0; left:0; width:100%; height:100%; border-radius:8px;" controls autoplay>
+          <source src="caozuo.mp4" type="video/mp4">
+        </video>
+      </div>
+      <button id="close-use-video" class="btn-blue">关闭视频，开始实验</button>
+    </div>
+  `;
+  document.body.appendChild(videoModal);
+  videoModal.style.display = 'flex';
+
+  document.getElementById('close-use-video').onclick = () => {
+    // 获取视频元素并停止播放
+    const video = document.getElementById('use-video');
+    if (video) {
+      video.pause();
+      video.currentTime = 0;
+    }
+    videoModal.style.display = 'none';
+    
+    // 执行回调函数（如果存在）
+    if (callback) {
+      callback();
+    } else {
+      // 原来的逻辑：直接弹出题目
+      showQuizModal(1);
+    }
+  };
+}
     // 核心实验逻辑处理
     function handleExperimentLogic(name) {
         // 未正确清点器材不能操作
         if (!state.prepared) {
-            showQuizModal(1);
+          handleErrorWithVideo('qingdian.mp4', '器材清点教学', 1); // 先弹视频
             return addLog("❌ 请先完成「清点器材」步骤（需选对所有必需器材）！");
         }
          const tools = [
@@ -244,7 +454,7 @@ function showTool(name) {
             state.totalDeduction += 0.5;
             state.details.push(`未蘸水就放置${name}`);
             addLog(`❌ 请先完成前面操作，再放置${name}！`);
-            showQuizModal(1);
+            //showQuizModal(1);
             return;
         }
             document.getElementById('cutting-zone').classList.add('hidden');
@@ -270,7 +480,7 @@ function showTool(name) {
             document.getElementById('cutting-zone').classList.remove('hidden');
             document.getElementById('s-cut-step').innerText = "已放木板 → 请放叶片";
             state.step = 1;
-            guide.innerText = "请将「新鲜菠菜叶片」平放在木板上";
+            //guide.innerText = "请将「新鲜菠菜叶片」平放在木板上";
             addLog("✅ 放置小木板");
         } 
         // 步骤2：放置菠菜叶片
@@ -278,7 +488,7 @@ function showTool(name) {
             leafItem.classList.remove('hidden');
             document.getElementById('s-cut-step').innerText = "已放叶片 → 请放双面刀片";
             state.step = 2;
-            guide.innerText = "如果没有选择培养皿（含清水），选择完成后再拖入-双面刀片";
+            //guide.innerText = "如果没有选择培养皿（含清水），选择完成后再拖入-双面刀片";
             addLog("✅ 放置菠菜叶片");
         }
          // 步骤3：放置刀片（仅需1个）
@@ -290,7 +500,7 @@ function showTool(name) {
                 cutButtons.classList.remove('hidden'); 
                 document.getElementById('s-cut-step').innerText = "双面刀片 → 切割前必须先蘸水！"; // 修改提示
                 state.step = 3;
-                guide.innerText = "切割前必须先点击「蘸水」按钮，再点击切割！"; // 修改提示
+                //guide.innerText = "切割前必须先点击「蘸水」按钮，再点击切割！"; // 修改提示
                 addLog("✅ 放置双面刀片，切割前请先点击「蘸水」按钮");
             }
         }
@@ -308,7 +518,7 @@ function showTool(name) {
             
             state.step = 4;
             document.getElementById('s-cut-step').innerText = "已放清水 → 请放毛笔选取切片";
-            guide.innerText = "请拖入「毛笔」选取培养皿中最薄的切片";
+           // guide.innerText = "请拖入「毛笔」选取培养皿中最薄的切片";
             addLog("✅ 放置清水（双面刀片已蘸水，切割完成）");
         }
         // 步骤5：放置毛笔（修改：隐藏临时切片，不隐藏毛笔）
@@ -321,7 +531,7 @@ function showTool(name) {
         document.getElementById('temp-slide-zone').classList.add('hidden');
         state.step = 5;
         document.getElementById('s-cut-step').innerText = "已蘸取切片 → 请放载玻片制作临时切片";
-        guide.innerText = "请拖入「载玻片」制作临时切片（放置后毛笔会隐藏）";
+        //guide.innerText = "请拖入「载玻片」制作临时切片（放置后毛笔会隐藏）";
         addLog("✅ 用毛笔选取最薄切片，等待放置载玻片");
     }
     // 新增步骤6：放置载玻片（显示临时切片 + 隐藏毛笔）
@@ -332,7 +542,7 @@ function showTool(name) {
         //document.getElementById('brush-tool').classList.add('hidden');
         state.step = 6;
         document.getElementById('s-cut-step').innerText = "已制作临时切片 → 请放显微镜";
-        guide.innerText = "请拖入「显微镜」开始观察叶片组织";
+        //guide.innerText = "请拖入「显微镜」开始观察叶片组织";
         addLog("✅ 放置载玻片，完成临时切片制作");
     }
     // 步骤7：放置显微镜
@@ -348,7 +558,7 @@ function showTool(name) {
         initMicroscope();
         state.step = 7;
         document.getElementById('s-cut-step').innerText = "显微镜已放置 → 按步骤操作：粗准焦上升→转换器→反光镜→载玻片→粗准焦下降→细准焦";
-    guide.innerText = "请按显微镜左侧按钮顺序操作（从上到下），完成调焦观察";
+    //guide.innerText = "请按显微镜左侧按钮顺序操作（从上到下），完成调焦观察";
     addLog("✅ 放置显微镜并完成对光，开始按步骤操作显微镜按钮");
 
     }
@@ -376,7 +586,8 @@ function clearAllTools() {
             state.totalDeduction += 0.5;
             state.details.push("制作切片：未放置双面刀片就点击蘸水 (-0.5)");
             addLog("❌ 请先放置双面刀片！→ 扣0.5分");
-            showQuizModal(1)
+            showOperationVideoModal('qiege.mp4', '叶片切割操作教学', 2);
+            //showQuizModal(1)
             return;
         }
         
@@ -396,7 +607,7 @@ function clearAllTools() {
             state.canDragToolsAfterDip = true; // 解锁拖拽
             state.lastAction = "dip"; // 记录最后一次操作是蘸水
             addLog("✅ 双面刀片已蘸水（可进行切割操作）");
-            guide.innerText = "双面刀片已蘸水 → 可点击「切割」按钮进行切割";
+            //guide.innerText = "双面刀片已蘸水 → 可点击「切割」按钮进行切割";
         }, 1200); // 动画时长和CSS中一致（1.2秒）
     };
 
@@ -406,7 +617,7 @@ function clearAllTools() {
             state.totalDeduction += 0.5;
             state.details.push("制作切片：未放置刀片就点击切割 (-0.5)");
             addLog("❌ 请先放置刀片！→ 扣0.5分");
-            showQuizModal(2);
+            showOperationVideoModal('qiege.mp4', '叶片切割操作教学', 2);
             return;
         }
       // ========== 新增：校验2：未拖拽培养皿（内含清水） ==========
@@ -414,7 +625,7 @@ function clearAllTools() {
             //state.totalDeduction += 0.5;
             state.details.push("制作切片：未放置培养皿（内含清水）就点击切割");
             addLog("❌ 请先拖拽「培养皿（内含清水）」到操作台！");
-            showQuizModal(3);
+            //showQuizModal(3);
             return;
         }
 
@@ -423,7 +634,7 @@ function clearAllTools() {
             state.totalDeduction += 0.5;
             state.details.push("制作切片：切割前未蘸水（首次切割也需蘸水） (-0.5)");
             addLog("❌ 切割前必须先蘸水！→ 扣0.5分，请先点击「蘸水」按钮");
-            showQuizModal(2); 
+            showOperationVideoModal('qiege.mp4', '叶片切割操作教学', 2);
             return;
         }
 
@@ -445,7 +656,7 @@ function clearAllTools() {
     if (cutLeafImg) cutLeafImg.classList.remove('hidden');
     // 日志提示（复用原有addLog函数，保持日志格式统一）
     addLog(`✅ 第${state.cutCount}次切割成功（已蘸水），叶片已替换为切割后图片`);
-    guide.innerText = `第${state.cutCount}次切割完成 → 如需再次切割请重新「蘸水」-然后请独立完成后续制作切片操作`;
+    //guide.innerText = `第${state.cutCount}次切割完成 → 如需再次切割请重新「蘸水」-然后请独立完成后续制作切片操作`;
     };
 
     // 双面刀片切割动画（含叶片切割效果）
@@ -603,9 +814,19 @@ function startTweezersAnimation() {
             });
         }, 500);
         state.step = 6;
-guide.innerText = "镊子操作完成 → 请拖入「显微镜」开始观察";
+//guide.innerText = "镊子操作完成 → 请拖入「显微镜」开始观察";
 document.getElementById('s-cut-step').innerText = "已完成切片制作 → 请放显微镜";
     });
+}
+// 通用错误处理函数：先弹视频，再弹题
+function handleErrorWithVideo(videoSrc, videoTitle, category) {
+    // 如果该类题目已经弹过，直接返回（避免重复）
+    // if (state.hasShownQuiz[category]) {
+    //     return;
+    // }
+    
+    // 先弹视频
+    showOperationVideoModal(videoSrc, videoTitle, category);
 }
     // ========== 新增：通用工具移动动画函数（复用性强） ==========
     function animateToolMove(element, targetX, targetY, duration, callback) {
@@ -671,7 +892,7 @@ function initToolClickListeners() {
         });
 
         if (invalidTools.length > 0) {
-            showQuizModal(2);
+            handleErrorWithVideo('caozuo.mp4', '实验操作教学', 2);
             return `❌ 请先将「${invalidTools.join('、')}」拖拽到操作台后，再进行操作！`;
         }
         return null;
@@ -681,19 +902,19 @@ function initToolClickListeners() {
     function checkToolOrder(currentToolId) {
         const currentIndex = toolOrder.findIndex(item => item.id === currentToolId);
         if (currentIndex === -1) {
-            showQuizModal(1);
+             handleErrorWithVideo('caozuo.mp4', '实验操作教学', 2);
             return `❌ 无效操作：该工具无需按顺序操作！`;
         }
         // 已完成的工具重复点击
         if (toolOrder[currentIndex].completed) {
             const nextTool = toolOrder.find((item, idx) => idx === state.toolStep);+
-            showQuizModal(1);
+            handleErrorWithVideo('caozuo.mp4', '实验操作教学', 2);
             return `❌ 「${toolOrder[currentIndex].name}」已操作完成，请勿重复点击！${nextTool ? `请继续点击「${nextTool.name}」完成${nextTool.action}。` : ''}`;
         }
         // 顺序错误（未到当前工具步骤）
         if (currentIndex > state.toolStep) {
             const nextTool = toolOrder[state.toolStep];
-            showQuizModal(1);
+             handleErrorWithVideo('caozuo.mp4', '实验操作教学', 2);
             return `❌ 操作顺序错误：请先点击「${nextTool.name}」完成${nextTool.action}后，再操作当前工具！`;
         }
         return null;
@@ -773,12 +994,12 @@ function initToolClickListeners() {
             // 原有专属校验
             if (!dish || dish.classList.contains('hidden')) {
                 addLog("❌ 请先放置培养皿（内含清水），再使用毛笔！");
-                showQuizModal(1);
+                showQuizModal(4);
                 return;
             }
             if (!waterTool || waterTool.classList.contains('hidden') && !toolOrder.find(item => item.id === 'tool-water').completed) {
                 addLog("❌ 请先放置清水工具，再使用毛笔！");
-                showQuizModal(3);
+                showQuizModal(4);
                 return;
             }
             // 执行动画 + 标记完成 + 更新步骤
@@ -810,12 +1031,12 @@ function initToolClickListeners() {
             const slide = document.getElementById('tool-slide');
             if (!coverSlide || coverSlide.classList.contains('hidden')) {
                 addLog("❌ 请先放置盖玻片，再使用镊子！");
-                showQuizModal(3);
+               showOperationVideoModal('gaigaibopian.mp4', '盖盖玻片操作教学', 5);
                 return;
             }
             if (!slide || slide.classList.contains('hidden')) {
                 addLog("❌ 请先放置载玻片，再使用镊子！");
-                showQuizModal(4);
+              showOperationVideoModal('gaigaibopian.mp4', '盖盖玻片操作教学', 5);
                 return;
             }
             // 执行动画 + 标记完成 + 更新步骤
@@ -901,7 +1122,7 @@ function initMicroscopeControls() {
                 state.details.push("显微镜观察：调焦过度 (-0.5)");
                 state.hasFocusDeducted = true;
                 addLog("⚠️ 调焦过度 → 扣0.5分");
-                showQuizModal(3);
+                //showQuizModal(3);
             }
         } else {
             addLog("⚠️ 请先完成粗准焦螺旋下降步骤");
@@ -1014,20 +1235,23 @@ document.getElementById('prepareBtn').onclick = () => {
         
         let logMsg = "";
         if (selectedDistract.length > 0 && missingRequired.length > 0) {
+              handleErrorWithVideo('qingdian.mp4', '器材清点教学', 1); // 先弹视频
             logMsg = `❌ 器材清点错误：多选了${selectedDistract.join('、')}，漏选了${missingRequired.join('、')} → 扣0.5分`;
             state.totalDeduction += 0.5;
             state.details.push(`清点器材：多选${selectedDistract.length}个干扰项/漏选${missingRequired.length}个必需项 (-0.5)`);
-             showQuizModal(1);
+             //showQuizModal(1);
         } else if (selectedDistract.length > 0) {
+            handleErrorWithVideo('qingdian.mp4', '器材清点教学', 1); // 先弹视频 
             logMsg = `❌ 器材清点错误：多选了干扰项${selectedDistract.join('、')} → 扣0.5分`;
             state.totalDeduction += 0.5;
             state.details.push(`清点器材：多选${selectedDistract.length}个干扰项 (-0.5)`);
-             showQuizModal(1);
+            handleErrorWithVideo('qingdian.mp4', '器材清点教学', 1); // 先弹视频
         } else if (missingRequired.length > 0) {
+            showCheckVideoModal(); 
             logMsg = `❌ 器材清点错误：漏选了必需器材${missingRequired.join('、')} → 扣0.5分`;
             state.totalDeduction += 0.5;
             state.details.push(`清点器材：漏选${missingRequired.length}个必需项 (-0.5)`);
-             showQuizModal(1);
+              handleErrorWithVideo('qingdian.mp4', '器材清点教学', 1); // 先弹视频
         } else {
             logMsg = "✅ 器材清点正确！已解锁实验操作";
         }
@@ -1040,7 +1264,7 @@ document.getElementById('prepareBtn').onclick = () => {
             document.getElementById('s-prepare').innerText = "✅ 清点正确（可开始拖拽操作）";
             initShelf(); 
             shelf.style.display = 'flex';
-            guide.innerText = "请将「小木板」拖入实验区开始实验";
+            //guide.innerText = "请将「小木板」拖入实验区开始实验";
         }
 
         addLog(logMsg);
@@ -1060,7 +1284,7 @@ document.getElementById('prepareBtn').onclick = () => {
         state.totalDeduction += 0.5;
         state.details.push("实验报告：缺少组织类型描述 (-0.5)");
         addLog("❌ 实验报告不完整 → 扣0.5分");
-        showQuizModal(5); // 新增：触发答题弹窗
+        //showQuizModal(5); // 新增：触发答题弹窗
     }
     document.getElementById('reportInput').disabled = true;
 };
@@ -1101,60 +1325,96 @@ function getRandomQuestions(category, n = RANDOM_QUESTION_COUNT) {
 }
 // 显示答题弹窗（按分类出题）
 function showQuizModal(category = 1) { // 默认分类1
-  // 强制重置所有答题状态
-  state.currentQuestions = [];
-  state.answeredCount = 0;
-  state.isAnswering = true;
+    // 注意：这里不再检查 hasShownQuiz，因为在视频弹窗中已经检查并标记了
+    // 如果直接调用 showQuizModal（比如预习模式），需要确保 hasShownQuiz 正确设置
+    
+    // 强制重置所有答题状态
+    state.currentQuestions = [];
+    state.answeredCount = 0;
+    state.isAnswering = true;
+  window.currentQuizCategory = category;
+    // 调用批量出题函数（按指定分类抽题）
+    state.currentQuestions = getRandomQuestions(category, RANDOM_QUESTION_COUNT);
 
-  // 调用批量出题函数（按指定分类抽题）
-  state.currentQuestions = getRandomQuestions(category, RANDOM_QUESTION_COUNT);
+    const modal = document.getElementById('quiz-modal');
+    const content = document.getElementById('quiz-content');
+    const remainEl = document.getElementById('quiz-remain');
+    if (remainEl) {
+        remainEl.innerText = state.currentQuestions.length - state.answeredCount;
+    }
 
-  const modal = document.getElementById('quiz-modal');
-  const content = document.getElementById('quiz-content');
-  const remainEl = document.getElementById('quiz-remain');
-  if (remainEl) {
-    remainEl.innerText = state.currentQuestions.length - state.answeredCount;
-  }
+    // 渲染第一道题，传入category参数
+    renderQuestion(0);
 
-  // 渲染第一道题
-  renderQuestion(0);
-
-  modal.style.display = 'flex';
+    modal.style.display = 'flex';
 }
-
-// 渲染指定索引的题目（适配多题切换）
+// 渲染指定索引的题目（适配多题切换和图片题）
 function renderQuestion(index) {
-  // 所有题答完，直接返回
-  if (index >= state.currentQuestions.length) return;
+    // 所有题答完，直接返回
+    if (index >= state.currentQuestions.length) return;
 
-  const question = state.currentQuestions[index];
-  const content = document.getElementById('quiz-content');
-  
-  // 渲染题目和选项（和原来一样，不变）
-  content.innerHTML = `
-    <div style="margin-bottom: 15px;"><strong>${index + 1}/${state.currentQuestions.length} ${question.title}</strong></div>
-    <div id="options-list">
-      ${question.options.map((opt) => `
-        <div class="quiz-option" data-answer="${opt.charAt(0)}" style="margin: 8px 0; cursor: pointer; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-          ${opt}
-        </div>
-      `).join('')}
-    </div>
-  `;
+    const question = state.currentQuestions[index];
+    const content = document.getElementById('quiz-content');
+    
+    // 保存当前分类到window，供checkAnswer使用
+    // 注意：需要在调用renderQuestion时传入category，或者从其他地方获取
+    // 这里我们从state中获取当前分类（需要在showQuizModal中保存）
+    const currentCategory = window.currentQuizCategory || 1;
+    
+    let html = '';
 
-  // 隐藏提示/结果
-  document.getElementById('quiz-hint').style.display = 'none';
-  document.getElementById('quiz-result').style.display = 'none';
-  document.getElementById('quiz-close').style.display = 'none';
+    // 图片题
+    if(question.type === 'image'){
+        html = `
+            <div style="margin-bottom:15px;"><strong>${index + 1}/${state.currentQuestions.length} ${question.title}</strong></div>
+            <div style="text-align:center; margin-bottom:15px;">
+                <img src="${question.src}" style="max-width:100%; border-radius:8px; cursor:pointer;" 
+                     onclick="window.open('${question.src}','_blank')" title="点击放大查看">
+            </div>
+            <div style="margin:10px 0;">
+                <input type="text" id="image-answer-input" placeholder="请输入答案" 
+                       style="width:100%; padding:10px; font-size:16px; border:1px solid #ddd; border-radius:4px;">
+            </div>
+            <button id="submit-image-answer" style="width:100%; padding:10px; background:#28a745; color:white; border:none; border-radius:4px; cursor:pointer;">
+                提交答案
+            </button>
+        `;
+    } else {
+        // 选择题
+        html = `
+            <div style="margin-bottom: 15px;"><strong>${index + 1}/${state.currentQuestions.length} ${question.title}</strong></div>
+            <div id="options-list">
+                ${question.options.map((opt) => `
+                    <div class="quiz-option" data-answer="${opt.charAt(0)}" style="margin: 8px 0; cursor: pointer; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        ${opt}
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
 
-  // 动态绑定选项点击事件（不变）
-  const options = document.querySelectorAll('.quiz-option');
-  options.forEach(option => {
-    option.addEventListener('click', () => {
-      const userAnswer = option.getAttribute('data-answer');
-      checkAnswer(index, userAnswer); // 传入当前题索引
-    });
-  });
+    content.innerHTML = html;
+    document.getElementById('quiz-hint').style.display = 'none';
+    document.getElementById('quiz-result').style.display = 'none';
+    document.getElementById('quiz-close').style.display = 'none';
+
+    // 选择题绑定
+    if(!question.type){
+        const options = document.querySelectorAll('.quiz-option');
+        options.forEach(option => {
+            option.addEventListener('click', () => {
+                const userAnswer = option.getAttribute('data-answer');
+                checkAnswer(index, userAnswer);
+            });
+        });
+    } else {
+        // 图片题提交绑定
+        document.getElementById('submit-image-answer').addEventListener('click', () => {
+            const input = document.getElementById('image-answer-input');
+            const userAnswer = input.value.trim();
+            checkAnswer(index, userAnswer);
+        });
+    }
 }
 // ========== 5. 修复 checkAnswer 函数（补全content变量，避免报错） ==========
 function checkAnswer(questionIndex, userAnswer) {
@@ -1178,12 +1438,33 @@ function checkAnswer(questionIndex, userAnswer) {
   const remainEl = document.getElementById('quiz-remain') || document.createElement('div');
   const closeBtn = document.getElementById('quiz-close') || document.createElement('button');
   const content = document.getElementById('quiz-content') || document.createElement('div');
+  const currentCategory = window.currentQuizCategory || 1;
 
   if (userAnswer === question.answer) {
     state.answeredCount++;
     hintEl.style.display = 'none';
     resultEl.style.display = 'block';
-    resultEl.innerText = `✅ 回答正确！剩余${state.currentQuestions.length - state.answeredCount}道题`;
+ // 根据分类显示不同的正确评价语（从预习代码复制）
+        if (currentCategory === 2) {
+            resultEl.innerText = `✅ 太棒了！你完美掌握了叶片切片实验的核心操作规范：横向切割、双刀速切、保护细胞结构，每一个细节都精准拿捏！不仅能分清方向和工具，还理解了操作背后的原理，实验思维和知识点都超扎实，继续保持这份细致和认真，你就是课堂上最亮眼的实验小能手！`;
+        } else if (currentCategory === 1) {
+            resultEl.innerText = `✅ 能根据实验要求，正确选用双面刀片，器材选择准确。`;
+        } else if (currentCategory === 3) {
+            resultEl.innerText = `✅ 你严谨遵守了实验规范，用洁净纱布擦拭载玻片和盖玻片，有效避免了杂质、油污对观察的干扰，细节意识和科学素养超棒，为后续实验打下了干净清晰的基础！`;
+        } else if (currentCategory === 4) {
+            resultEl.innerText = `✅ 你精准掌握了选取最薄叶片切片的规范操作，用毛笔轻取薄片的方法既专业又能保护切片完整性，实验操作细节拿捏得很到位！`;
+        } else if (currentCategory === 5) {
+            resultEl.innerText = `✅ 你精准抓住了实验操作的核心逻辑！用镊子夹取盖玻片，既能避免手指污染标本或盖玻片，又能精准控制倾斜角度和放下速度，完美体现了严谨的科学操作素养，细节意识超棒！`;
+        } else if (currentCategory === 6) {
+            const correctMessages = [
+                '你严格遵循了显微镜取放规范，一手握镜壁、一手托镜座的动作既稳又安全，能有效避免显微镜倾斜、滑落损坏，科学操作素养超棒！ “一手握壁、一手托座”，保护好精密仪器哦！',
+                '你精准掌握了显微镜取放的操作逻辑！将显微镜放在实验台偏左的位置，既方便左眼观察目镜、右手记录绘图，又能避免仪器滑落，操作习惯既科学又高效，实验素养超棒！'
+            ];
+            const randomIndex = Math.floor(Math.random() * correctMessages.length);
+            resultEl.innerText = `✅ ${correctMessages[randomIndex]}`;
+        } else {
+            resultEl.innerText = `✅ 回答正确！`;
+        }
     if (remainEl) remainEl.innerText = state.currentQuestions.length - state.answeredCount;
 
     // ========== 3. 确保定时器执行（用箭头函数+验证元素） ==========
@@ -1218,7 +1499,31 @@ function checkAnswer(questionIndex, userAnswer) {
     // 答错提示（确保元素存在）
     if (hintEl) {
       hintEl.style.display = 'block';
-      hintEl.innerText = '❌ 答案错误，请重新选择！';
+        if (currentCategory === 2) {
+            const errorMessages = [
+                '别灰心！这几道题只是实验操作的细节小考验，哪怕这次没全对也没关系～只要记住 "横向看结构，双刀要速切" 这个小口诀，再对照实验步骤复盘一遍，把方向、工具、动作的易错点理清楚，下次一定能稳稳通关！你对实验的热情和探索欲就是最大的优势，慢慢来，每一次尝试都在靠近满分！',
+                '使用并排两片刀片可获得更薄的切片，横向切割能观察到叶片横切面结构，迅速切割能保证切片薄而完整，避免细胞结构被破坏；缓慢切割易使叶片组织挤压、变形，切片过厚；来回切拉会造成切片破碎破坏结构，无法得到完整切片；应使用捏紧并排的双面刀片，并迅速切割，以获得薄而均匀的切片。'
+            ];
+            const randomIndex = Math.floor(Math.random() * errorMessages.length);
+            hintEl.innerText = `❌ ${errorMessages[randomIndex]}`;
+        } else if (currentCategory === 1) {
+            hintEl.innerText = '❌ 未正确选取实验所需的双面刀片，错误选用单面刀片，实验器材选择不符合要求。';
+        } else if (currentCategory === 3) {
+            hintEl.innerText = '❌ 这次小疏忽啦～忘记用纱布擦拭玻片会残留杂质，容易在显微镜下形成干扰，影响对叶片结构的观察。下次记得先 "擦净玻片再操作"，实验效果会更好哦！';
+        } else if (currentCategory === 4) {
+            hintEl.innerText = '❌ 没关系！这次只是对工具选择有点混淆，记住要用毛笔轻轻蘸取最薄的切片，避免用手或镊子夹碎切片，下次一定能选对！';
+        } else if (currentCategory === 5) {
+            hintEl.innerText = '❌ 没关系！这次只是对操作原理的理解有点偏差，记住用镊子的核心目的：防止手指污染、保证操作精准、避免盖玻片碎裂或产生气泡，下次就能清晰理解啦！';
+        } else if (currentCategory === 6) {
+            const errorMessages = [
+                '这次小疏忽啦～取放显微镜时只握镜壁会导致仪器重心不稳，容易磕碰甚至摔落损坏，下次一定要记得 “一手握壁、一手托座”，保护好精密仪器哦！',
+                '没关系！这次只是对操作原理的理解有偏差，记住显微镜放偏左的核心目的：方便左眼观察、右手记录，同时保证仪器稳定安全，下次就能清晰理解啦！'
+            ];
+            const randomIndex = Math.floor(Math.random() * errorMessages.length);
+            hintEl.innerText = `❌ ${errorMessages[randomIndex]}`;
+        } else {
+            hintEl.innerText = '❌ 答案错误，请重新选择！';
+        }
       hintEl.style.color = '#dc3545';
       hintEl.style.textAlign = 'center';
     }
@@ -1262,7 +1567,7 @@ window.addEventListener('message', function(event) {
         
         // 如果扣分超过阈值，触发答题
         if (event.data.points >= 0.5) {
-            showQuizModal(2); // 分类2：显微镜操作相关题目
+            handleErrorWithVideo('duiguang.mp4', '显微镜对光调光操作教学', 6); // 先弹视频
         }
     }
 });
